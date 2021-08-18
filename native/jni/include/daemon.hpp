@@ -25,7 +25,7 @@ enum : int {
     MAGISKHIDE,
     SQLITE_CMD,
     REMOVE_MODULES,
-    DAEMON_CODE_END,
+    DAEMON_CODE_END
 };
 
 // Return codes for daemon
@@ -58,8 +58,6 @@ void su_daemon_handler(int client, ucred *credential);
 void auto_start_magiskhide(bool late_props);
 int stop_magiskhide();
 
-#if ENABLE_INJECT
 // For injected process to access daemon
 int remote_check_hide(int uid, const char *process);
 void remote_request_hide();
-#endif
