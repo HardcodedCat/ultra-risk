@@ -8,6 +8,7 @@
 
 enum : int {
     ZYGISK_SETUP,
+    ZYGISK_GET_LOG_PIPE
 };
 
 // Unmap all pages matching the name
