@@ -91,6 +91,11 @@ static void handle_request_sync(int client, int code) {
     case START_DAEMON:
         setup_logfile(true);
         break;
+    case STOP_DAEMON:
+        magiskhide_handler(-1, nullptr);
+        write_int(client, 0);
+        // Terminate the daemon!
+        exit(0);
     }
 }
 
@@ -132,6 +137,12 @@ static void handle_request(int client) {
         break;
     case MAGISKHIDE:  // accept hide request from zygote
         if (!is_root && !is_zygote) {
+            write_int(client, ROOT_REQUIRED);
+            goto done;
+        }
+        break;
+    case STOP_DAEMON:
+        if (!is_root) {
             write_int(client, ROOT_REQUIRED);
             goto done;
         }
