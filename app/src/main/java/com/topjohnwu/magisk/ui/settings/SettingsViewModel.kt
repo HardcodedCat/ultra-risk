@@ -15,7 +15,6 @@ import com.topjohnwu.magisk.core.isRunningAsStub
 import com.topjohnwu.magisk.core.tasks.HideAPK
 import com.topjohnwu.magisk.data.database.RepoDao
 import com.topjohnwu.magisk.databinding.adapterOf
-import com.topjohnwu.magisk.databinding.diffListOf
 import com.topjohnwu.magisk.databinding.itemBindingOf
 import com.topjohnwu.magisk.di.AppContext
 import com.topjohnwu.magisk.events.AddHomeIconEvent
@@ -34,7 +33,7 @@ class SettingsViewModel(
 
     val adapter = adapterOf<BaseSettingsItem>()
     val itemBinding = itemBindingOf<BaseSettingsItem> { it.bindExtra(BR.callback, this) }
-    val items = diffListOf(createItems())
+    val items = createItems()
 
     init {
         viewModelScope.launch {

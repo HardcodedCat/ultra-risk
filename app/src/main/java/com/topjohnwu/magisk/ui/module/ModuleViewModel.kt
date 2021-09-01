@@ -5,16 +5,14 @@ import androidx.databinding.ObservableArrayList
 import androidx.lifecycle.viewModelScope
 import com.topjohnwu.magisk.BR
 import com.topjohnwu.magisk.R
-import com.topjohnwu.magisk.arch.*
+import com.topjohnwu.magisk.arch.BaseViewModel
+import com.topjohnwu.magisk.arch.Queryable
+import com.topjohnwu.magisk.core.Config
 import com.topjohnwu.magisk.core.Info
+import com.topjohnwu.magisk.core.download.Subject
 import com.topjohnwu.magisk.core.model.module.LocalModule
 import com.topjohnwu.magisk.core.model.module.OnlineModule
-import com.topjohnwu.magisk.databinding.ComparableRvItem
-import com.topjohnwu.magisk.databinding.adapterOf
-import com.topjohnwu.magisk.databinding.diffListOf
-import com.topjohnwu.magisk.databinding.itemBindingOf
-import com.topjohnwu.magisk.databinding.RvItem
-import com.topjohnwu.magisk.databinding.set
+import com.topjohnwu.magisk.databinding.*
 import com.topjohnwu.magisk.events.OpenReadmeEvent
 import com.topjohnwu.magisk.events.SelectModuleEvent
 import com.topjohnwu.magisk.events.SnackbarEvent
@@ -50,8 +48,8 @@ class ModuleViewModel : BaseViewModel(), Queryable {
     var searchLoading = false
         set(value) = set(value, field, { field = it }, BR.searchLoading)
 
-    val itemsSearch = diffListOf<ComparableRvItem<*>>()
-    val itemSearchBinding = itemBindingOf<ComparableRvItem<*>> {
+    val itemsSearch = diffListOf<AnyDiffRvItem>()
+    val itemSearchBinding = itemBindingOf<AnyDiffRvItem> {
         it.bindExtra(BR.viewModel, this)
     }
 
@@ -116,7 +114,7 @@ class ModuleViewModel : BaseViewModel(), Queryable {
 
     // ---
 
-    private suspend fun queryInternal(query: String): List<ComparableRvItem<*>> {
+    private suspend fun queryInternal(query: String): List<AnyDiffRvItem> {
         return if (query.isBlank()) {
             itemsSearch.clear()
             listOf()
