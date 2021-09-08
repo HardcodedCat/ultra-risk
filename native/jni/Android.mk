@@ -9,7 +9,6 @@ ifdef B_MAGISK
 include $(CLEAR_VARS)
 LOCAL_MODULE := magisk
 LOCAL_STATIC_LIBRARIES := libnanopb libsystemproperties libutils libphmap libxhook
-LOCAL_C_INCLUDES := jni/include
 
 LOCAL_SRC_FILES := \
     core/applets.cpp \
@@ -50,7 +49,6 @@ ifdef B_INIT
 
 LOCAL_MODULE := magiskinit
 LOCAL_STATIC_LIBRARIES := libsepol libxz libutils
-LOCAL_C_INCLUDES := jni/include out
 
 LOCAL_SRC_FILES := \
     init/init.cpp \
@@ -77,7 +75,6 @@ ifdef B_BOOT
 include $(CLEAR_VARS)
 LOCAL_MODULE := magiskboot
 LOCAL_STATIC_LIBRARIES := libmincrypt liblzma liblz4 libbz2 libfdt libutils libz libzopfli
-LOCAL_C_INCLUDES := jni/include
 
 LOCAL_SRC_FILES := \
     magiskboot/main.cpp \
@@ -100,7 +97,6 @@ ifdef B_POLICY
 include $(CLEAR_VARS)
 LOCAL_MODULE := magiskpolicy
 LOCAL_STATIC_LIBRARIES := libsepol libutils
-LOCAL_C_INCLUDES := jni/include
 
 LOCAL_SRC_FILES := \
     core/applet_stub.cpp \
@@ -121,7 +117,6 @@ ifdef B_PROP
 include $(CLEAR_VARS)
 LOCAL_MODULE := resetprop
 LOCAL_STATIC_LIBRARIES := libnanopb libsystemproperties libutils
-LOCAL_C_INCLUDES := jni/include
 
 LOCAL_SRC_FILES := \
     core/applet_stub.cpp \
@@ -140,7 +135,6 @@ ifneq (,$(wildcard jni/test.cpp))
 include $(CLEAR_VARS)
 LOCAL_MODULE := test
 LOCAL_STATIC_LIBRARIES := libutils libphmap
-LOCAL_C_INCLUDES := jni/include
 LOCAL_SRC_FILES := test.cpp
 include $(BUILD_EXECUTABLE)
 
