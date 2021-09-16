@@ -146,6 +146,7 @@
     <string name="settings_update_beta">Beta</string>
     <string name="settings_update_custom">Custom Channel</string>
     <string name="settings_update_custom_msg">Insert a custom URL</string>
+    <string name="settings_zygisk_summary">Run parts of Magisk in the zygote daemon</string>
     <string name="settings_magiskhide_summary">Hide Magisk from various forms of detection</string>
     <string name="settings_hosts_title">Systemless hosts</string>
     <string name="settings_hosts_summary">Systemless hosts support for Adblock apps</string>

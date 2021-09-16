@@ -18,6 +18,7 @@
 using namespace std;
 
 static bool safe_mode = false;
+bool zygisk_enabled = false;
 
 /*********
  * Setup *
@@ -301,6 +302,11 @@ void post_fs_data(int client) {
         stop_magiskhide();
     } else {
         exec_common_scripts("post-fs-data");
+        db_settings dbs;
+        get_db_settings(dbs, ZYGISK_CONFIG);
+        if (dbs[ZYGISK_CONFIG]) {
+            zygisk_enabled = true;
+        }
         auto_start_magiskhide(false);
         handle_modules();
     }

@@ -252,6 +252,16 @@ object Magisk : BaseSettingsItem.Section() {
     override val title = R.string.magisk.asText()
 }
 
+object Zygisk : BaseSettingsItem.Toggle() {
+    override val title = R.string.zygisk.asText()
+    override val description = R.string.settings_zygisk_summary.asText()
+    override var value = Config.zygisk
+        set(value) = setV(value, field, { field = it }) {
+            Config.zygisk = it
+            Config.magiskHide = it
+        }
+}
+
 object MagiskHide : BaseSettingsItem.Toggle() {
     override val title = R.string.magiskhide.asText()
     override val description = R.string.settings_magiskhide_summary.asText()
