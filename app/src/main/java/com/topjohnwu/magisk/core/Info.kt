@@ -31,6 +31,7 @@ object Info {
     @JvmField var isSAR = false
     @JvmField var isAB = false
     @JvmField val isVirtualAB = getProperty("ro.virtual_ab.enabled", "false") == "true"
+    @JvmField val isZygiskEnabled = System.getenv("ZYGISK_ENABLED") == "1"
     @JvmStatic val isFDE get() = crypto == "block"
     @JvmField var ramdisk = false
     @JvmField var hasGMS = true

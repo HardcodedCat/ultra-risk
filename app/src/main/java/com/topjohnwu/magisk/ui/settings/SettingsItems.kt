@@ -254,12 +254,15 @@ object Magisk : BaseSettingsItem.Section() {
 
 object Zygisk : BaseSettingsItem.Toggle() {
     override val title = R.string.zygisk.asText()
-    override val description = R.string.settings_zygisk_summary.asText()
+    override val description get() =
+        if (mismatch) R.string.reboot_apply_change.asText()
+        else R.string.settings_zygisk_summary.asText()
     override var value = Config.zygisk
         set(value) = setV(value, field, { field = it }) {
             Config.zygisk = it
             Config.magiskHide = it
         }
+    val mismatch get() = value != Info.isZygiskEnabled
 }
 
 object MagiskHide : BaseSettingsItem.Toggle() {

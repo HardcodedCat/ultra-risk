@@ -20,6 +20,7 @@ import com.topjohnwu.magisk.databinding.itemBindingOf
 import com.topjohnwu.magisk.di.AppContext
 import com.topjohnwu.magisk.events.AddHomeIconEvent
 import com.topjohnwu.magisk.events.RecreateEvent
+import com.topjohnwu.magisk.events.SnackbarEvent
 import com.topjohnwu.magisk.events.dialog.BiometricEvent
 import com.topjohnwu.magisk.ktx.activity
 import com.topjohnwu.magisk.utils.Utils
@@ -99,15 +100,17 @@ class SettingsViewModel(
         return list
     }
 
-    override fun onItemPressed(view: View, item: BaseSettingsItem, callback: () -> Unit) = when (item) {
-        is DownloadPath -> withExternalRW(callback)
-        is Biometrics -> authenticate(callback)
-        is Theme -> SettingsFragmentDirections.actionSettingsFragmentToThemeFragment().navigate()
-        is ClearRepoCache -> clearRepoCache()
-        is SystemlessHosts -> createHosts()
-        is Restore -> HideAPK.restore(view.activity)
-        is AddShortcut -> AddHomeIconEvent().publish()
-        else -> callback()
+    override fun onItemPressed(view: View, item: BaseSettingsItem, callback: () -> Unit) {
+        when (item) {
+            is DownloadPath -> withExternalRW(callback)
+            is Biometrics -> authenticate(callback)
+            is Theme -> SettingsFragmentDirections.actionSettingsFragmentToThemeFragment().navigate()
+            is ClearRepoCache -> clearRepoCache()
+            is SystemlessHosts -> createHosts()
+            is Restore -> HideAPK.restore(view.activity)
+            is AddShortcut -> AddHomeIconEvent().publish()
+            else -> callback()
+        }
     }
 
     override fun onItemChanged(view: View, item: BaseSettingsItem) {
@@ -115,6 +118,7 @@ class SettingsViewModel(
             is Language -> RecreateEvent().publish()
             is UpdateChannel -> openUrlIfNecessary(view)
             is Hide -> viewModelScope.launch { HideAPK.hide(view.activity, item.value) }
+            is Zygisk -> if (Zygisk.mismatch) SnackbarEvent(R.string.reboot_apply_change).publish()
             else -> Unit
         }
     }

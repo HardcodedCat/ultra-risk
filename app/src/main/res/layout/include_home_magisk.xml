@@ -171,7 +171,7 @@
 
                         <LinearLayout
                             android:id="@+id/home_device_details_sar"
-                            style="@style/W.Home.Item.Bottom"
+                            style="@style/W.Home.Item"
                             app:layout_constraintStart_toStartOf="@+id/home_device_details_ab"
                             app:layout_constraintTop_toBottomOf="@+id/home_device_details_ab">
 
@@ -182,6 +182,23 @@
                             <TextView
                                 style="@style/W.Home.ItemContent.Right"
                                 android:text="@{Info.isSAR ? @string/yes : @string/no}"
+                                tools:text="Yes" />
+
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/home_device_details_zygisk"
+                            style="@style/W.Home.Item.Bottom"
+                            app:layout_constraintStart_toStartOf="@+id/home_device_details_sar"
+                            app:layout_constraintTop_toBottomOf="@+id/home_device_details_sar">
+
+                            <TextView
+                                style="@style/W.Home.ItemContent"
+                                android:text="@string/zygisk" />
+
+                            <TextView
+                                style="@style/W.Home.ItemContent.Right"
+                                android:text="@{Info.isZygiskEnabled ? @string/yes : @string/no}"
                                 tools:text="Yes" />
 
                         </LinearLayout>
