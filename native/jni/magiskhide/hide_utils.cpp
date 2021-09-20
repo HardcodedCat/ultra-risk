@@ -27,28 +27,41 @@ void update_uid_map() {
     uid_proc_map->clear();
     string data_path(APP_DATA_DIR);
     size_t len = data_path.length();
-    auto dir = open_dir(APP_DATA_DIR);
-    bool first_iter = true;
-    for (dirent *entry; (entry = xreaddir(dir.get()));) {
-        data_path.resize(len);
-        data_path += '/';
-        data_path += entry->d_name;  // multiuser user id
-        data_path += '/';
-        size_t user_len = data_path.length();
-        struct stat st;
-        for (const auto &hide : *hide_set) {
-            if (hide.first == ISOLATED_MAGIC) {
-                if (!first_iter) continue;
-                // Setup isolated processes
-                (*uid_proc_map)[-1].emplace_back(hide.second);
-            }
-            data_path.resize(user_len);
-            data_path += hide.first;
-            if (stat(data_path.data(), &st))
-                continue;
-            (*uid_proc_map)[st.st_uid].emplace_back(hide.second);
+
+    // Collect all user IDs
+    vector<string> users;
+    if (auto dir = open_dir(APP_DATA_DIR)) {
+        for (dirent *entry; (entry = xreaddir(dir.get()));) {
+            users.emplace_back(entry->d_name);
         }
-        first_iter = false;
+    } else {
+        return;
+    }
+
+    string_view prev_pkg;
+    struct stat st;
+    for (const auto &hide : *hide_set) {
+        if (hide.first == ISOLATED_MAGIC) {
+            // Isolated process
+            (*uid_proc_map)[-1].emplace_back(hide.second);
+        } else if (prev_pkg == hide.first) {
+            // Optimize the case when it's the same package as previous iteration
+            (*uid_proc_map)[to_app_id(st.st_uid)].emplace_back(hide.second);
+        } else {
+            // Traverse the filesystem to find app ID
+            for (const auto &user_id : users) {
+                data_path.resize(len);
+                data_path += '/';
+                data_path += user_id;
+                data_path += '/';
+                data_path += hide.first;
+                if (stat(data_path.data(), &st) == 0) {
+                    prev_pkg = hide.first;
+                    (*uid_proc_map)[to_app_id(st.st_uid)].emplace_back(hide.second);
+                    break;
+                }
+            }
+        }
     }
 }
 
@@ -374,24 +387,25 @@ void auto_start_magiskhide(bool late_props) {
 bool is_hide_target(int uid, string_view process, int max_len) {
     mutex_guard lock(hide_state_lock);
 
-    if (uid % 100000 >= 90000) {
+    int app_id = to_app_id(uid);
+    if (app_id >= 90000) {
         // Isolated processes
         auto it = uid_proc_map->find(-1);
         if (it == uid_proc_map->end())
             return false;
 
-        for (auto &s : it->second) {
+        for (const auto &s : it->second) {
             if (s.length() > max_len && process.length() > max_len && str_starts(s, process))
                 return true;
             if (str_starts(process, s))
                 return true;
         }
     } else {
-        auto it = uid_proc_map->find(uid);
+        auto it = uid_proc_map->find(app_id);
         if (it == uid_proc_map->end())
             return false;
 
-        for (auto &s : it->second) {
+        for (const auto &s : it->second) {
             if (s.length() > max_len && process.length() > max_len && str_starts(s, process))
                 return true;
             if (s == process)
