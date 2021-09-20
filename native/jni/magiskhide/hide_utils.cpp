@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/inotify.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -16,6 +17,7 @@ using namespace std;
 static atomic<bool> hide_state = false;
 static set<pair<string, string>> *hide_set;          /* set of <pkg, process> pair */
 static map<int, vector<string_view>> *uid_proc_map;  /* uid -> list of process */
+static int inotify_fd = -1;
 
 // Locks the variables above
 static pthread_mutex_t hide_state_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -277,6 +279,19 @@ static void update_hide_config() {
     db_err(err);
 }
 
+static void inotify_handler(pollfd *pfd) {
+    union {
+        inotify_event event;
+        char buf[512];
+    } u{};
+    read(pfd->fd, u.buf, sizeof(u.buf));
+    if (u.event.name == "packages.xml"sv) {
+        exec_task([] {
+            update_uid_map();
+        });
+    }
+}
+
 int launch_magiskhide(bool late_props) {
     mutex_guard lock(hide_state_lock);
 
@@ -307,6 +322,15 @@ int launch_magiskhide(bool late_props) {
         return DAEMON_ERROR;
 
     hide_state = true;
+
+    inotify_fd = xinotify_init1(IN_CLOEXEC);
+    if (inotify_fd >= 0) {
+        // Monitor packages.xml
+        inotify_add_watch(inotify_fd, "/data/system", IN_CLOSE_WRITE);
+        pollfd inotify_pfd = { inotify_fd, POLLIN, 0 };
+        register_poll(&inotify_pfd, inotify_handler);
+    }
+
     update_hide_config();
 
     // Unlock here or else we'll be stuck in deadlock
@@ -326,6 +350,8 @@ int stop_magiskhide() {
         uid_proc_map = nullptr;
         hide_set = nullptr;
         pthread_kill(monitor_thread, SIGTERMTHRD);
+        unregister_poll(inotify_fd, true);
+        inotify_fd = -1;
     }
 
     hide_state = false;
