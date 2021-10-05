@@ -10,7 +10,7 @@
 #include <magisk.hpp>
 #include <db.hpp>
 
-#include "inject.hpp"
+#include "zygisk.hpp"
 #include "../magiskhide/magiskhide.hpp"
 
 using namespace std;
