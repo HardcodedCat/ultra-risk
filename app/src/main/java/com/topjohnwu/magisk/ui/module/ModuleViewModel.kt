@@ -12,7 +12,11 @@ import com.topjohnwu.magisk.core.download.Subject
 import com.topjohnwu.magisk.core.model.module.LocalModule
 import com.topjohnwu.magisk.core.tasks.RepoUpdater
 import com.topjohnwu.magisk.data.database.RepoDao
+import com.topjohnwu.magisk.databinding.adapterOf
+import com.topjohnwu.magisk.databinding.diffListOf
+import com.topjohnwu.magisk.databinding.itemBindingOf
 import com.topjohnwu.magisk.databinding.RvItem
+import com.topjohnwu.magisk.databinding.set
 import com.topjohnwu.magisk.events.OpenReadmeEvent
 import com.topjohnwu.magisk.events.SelectModuleEvent
 import com.topjohnwu.magisk.events.SnackbarEvent
@@ -20,7 +24,6 @@ import com.topjohnwu.magisk.events.dialog.ModuleInstallDialog
 import com.topjohnwu.magisk.ktx.addOnListChangedCallback
 import com.topjohnwu.magisk.ktx.reboot
 import com.topjohnwu.magisk.utils.EndlessRecyclerScrollListener
-import com.topjohnwu.magisk.utils.set
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch

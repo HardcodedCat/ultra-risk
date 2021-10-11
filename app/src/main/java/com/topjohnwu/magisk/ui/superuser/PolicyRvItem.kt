@@ -6,7 +6,7 @@ import com.topjohnwu.magisk.BR
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.core.model.su.SuPolicy
 import com.topjohnwu.magisk.databinding.ObservableItem
-import com.topjohnwu.magisk.utils.set
+import com.topjohnwu.magisk.databinding.set
 
 class PolicyRvItem(
     val item: SuPolicy,

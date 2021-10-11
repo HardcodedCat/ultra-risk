@@ -6,9 +6,9 @@ import androidx.databinding.Bindable
 import com.topjohnwu.magisk.BR
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.databinding.ObservableItem
+import com.topjohnwu.magisk.databinding.addOnPropertyChangedCallback
+import com.topjohnwu.magisk.databinding.set
 import com.topjohnwu.magisk.ktx.startAnimations
-import com.topjohnwu.magisk.utils.addOnPropertyChangedCallback
-import com.topjohnwu.magisk.utils.set
 import com.topjohnwu.superuser.Shell
 import kotlin.math.roundToInt
 
