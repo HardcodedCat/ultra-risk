@@ -42,9 +42,6 @@ void hide_unmount(int pid = -1);
 void hide_sensitive_props();
 void hide_late_sensitive_props();
 
-extern pthread_mutex_t hide_state_lock;
-extern std::map<int, std::vector<std::string_view>> uid_proc_map;
-
 enum {
     LAUNCH_MAGISKHIDE,
     STOP_MAGISKHIDE,
