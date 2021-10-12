@@ -8,6 +8,7 @@
 #include <utils.hpp>
 #include <daemon.hpp>
 #include <magisk.hpp>
+#include <db.hpp>
 
 #include "inject.hpp"
 
@@ -204,6 +205,19 @@ static int zygisk_log(int prio, const char *fmt, va_list ap) {
     return ret;
 }
 
+void remote_get_app_info(int uid, const char *process, AppInfo *info) {
+    if (int fd = connect_daemon(); fd >= 0) {
+        write_int(fd, ZYGISK_REQUEST);
+        write_int(fd, ZYGISK_GET_APPINFO);
+
+        write_int(fd, uid);
+        write_string(fd, process);
+        xxread(fd, info, sizeof(*info));
+
+        close(fd);
+    }
+}
+
 // The following code runs in magiskd
 
 static void setup_files(int client, ucred *cred) {
@@ -225,6 +239,16 @@ static void setup_files(int client, ucred *cred) {
     write_string(client, path);
 }
 
+static void get_app_info(int client) {
+    AppInfo info{};
+    int uid = read_int(client);
+    string process = read_string(client);
+    if (to_app_id(uid) == get_manager_app_id()) {
+        info.is_magisk_app = true;
+    }
+    xwrite(client, &info, sizeof(info));
+}
+
 static void send_log_pipe(int fd) {
     // There is race condition here, but we can't really do much about it...
     if (logd_fd >= 0) {
@@ -240,6 +264,9 @@ void zygisk_handler(int client, ucred *cred) {
     switch (code) {
     case ZYGISK_SETUP:
         setup_files(client, cred);
+        break;
+    case ZYGISK_GET_APPINFO:
+        get_app_info(client);
         break;
     case ZYGISK_GET_LOG_PIPE:
         send_log_pipe(client);

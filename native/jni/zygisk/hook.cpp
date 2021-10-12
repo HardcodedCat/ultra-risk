@@ -43,8 +43,9 @@ struct HookContext {
     const char *process;
     int pid;
     bitset<FLAG_MAX> flags;
+    AppInfo info;
 
-    HookContext() : pid(-1) {}
+    HookContext() : pid(-1), info{} {}
 
     static void close_fds();
 
@@ -247,6 +248,8 @@ void HookContext::nativeSpecializeAppProcess_pre() {
     } else {
         run_modules_pre();
     }
+
+    remote_get_app_info(args->uid, process, &info);
 }
 
 void HookContext::nativeSpecializeAppProcess_post() {
@@ -261,6 +264,9 @@ void HookContext::nativeSpecializeAppProcess_post() {
         self_unload();
     } else {
         run_modules_post();
+    }
+    if (info.is_magisk_app) {
+        setenv("ZYGISK_ENABLED", "1", 1);
     }
     g_ctx = nullptr;
 }
