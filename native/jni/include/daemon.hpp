@@ -50,6 +50,8 @@ enum : int {
     STATE_BOOT_COMPLETE
 };
 
+extern bool zygisk_enabled;
+
 int connect_daemon(bool create = false);
 
 // Poll control
@@ -72,6 +74,7 @@ void boot_complete(int client);
 void magiskhide_handler(int client, ucred *cred);
 void su_daemon_handler(int client, ucred *credential);
 void zygisk_handler(int client, ucred *cred);
+std::vector<int> zygisk_module_fds(bool is_64_bit);
 
 // MagiskHide
 void auto_start_magiskhide(bool late_props);
