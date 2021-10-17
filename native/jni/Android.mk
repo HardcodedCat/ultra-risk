@@ -35,7 +35,8 @@ LOCAL_SRC_FILES := \
     zygisk/entry.cpp \
     zygisk/utils.cpp \
     zygisk/hook.cpp \
-    zygisk/memory.cpp
+    zygisk/memory.cpp \
+    zygisk/companion.cpp
 
 LOCAL_LDLIBS := -llog
 
