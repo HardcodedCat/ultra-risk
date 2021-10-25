@@ -232,12 +232,16 @@ std::vector<int> remote_get_info(int uid, const char *process, AppInfo *info) {
 
 // The following code runs in magiskd
 
+static bool get_exe(int pid, char *buf, size_t sz) {
+    snprintf(buf, sz, "/proc/%d/exe", pid);
+    return xreadlink(buf, buf, sz) > 0;
+}
+
 static void setup_files(int client, const sock_cred *cred) {
     LOGD("zygisk: setup files for pid=[%d]\n", cred->pid);
 
     char buf[256];
-    snprintf(buf, sizeof(buf), "/proc/%d/exe", cred->pid);
-    if (xreadlink(buf, buf, sizeof(buf)) < 0) {
+    if (!get_exe(cred->pid, buf, sizeof(buf))) {
         write_int(client, 1);
         return;
     }
@@ -294,8 +298,7 @@ static void get_process_info(int client, const sock_cred *cred) {
     xwrite(client, &info, sizeof(info));
 
     char buf[256];
-    snprintf(buf, sizeof(buf), "/proc/%d/exe", cred->pid);
-    xreadlink(buf, buf, sizeof(buf));
+    get_exe(cred->pid, buf, sizeof(buf));
     vector<int> fds = zygisk_module_fds(str_ends(buf, "64"));
     send_fds(client, fds.data(), fds.size());
 }
@@ -312,6 +315,7 @@ static void send_log_pipe(int fd) {
 
 void zygisk_handler(int client, const sock_cred *cred) {
     int code = read_int(client);
+    char buf[256];
     switch (code) {
     case ZYGISK_SETUP:
         setup_files(client, cred);
@@ -322,8 +326,9 @@ void zygisk_handler(int client, const sock_cred *cred) {
     case ZYGISK_GET_LOG_PIPE:
         send_log_pipe(client);
         break;
-    case ZYGISK_START_COMPANION:
-        start_companion(client);
+    case ZYGISK_CONNECT_COMPANION:
+        get_exe(cred->pid, buf, sizeof(buf));
+        connect_companion(client, str_ends(buf, "64"));
         break;
     }
     close(client);
