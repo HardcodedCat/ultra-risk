@@ -232,7 +232,7 @@ std::vector<int> remote_get_info(int uid, const char *process, AppInfo *info) {
 
 // The following code runs in magiskd
 
-static void setup_files(int client, ucred *cred) {
+static void setup_files(int client, const sock_cred *cred) {
     LOGD("zygisk: setup files for pid=[%d]\n", cred->pid);
 
     char buf[256];
@@ -254,7 +254,7 @@ static void setup_files(int client, ucred *cred) {
 int cached_manager_app_id = -1;
 static time_t last_modified = 0;
 
-static void get_process_info(int client, ucred *cred) {
+static void get_process_info(int client, const sock_cred *cred) {
     AppInfo info{};
     int uid = read_int(client);
     string process = read_string(client);
@@ -310,7 +310,7 @@ static void send_log_pipe(int fd) {
     }
 }
 
-void zygisk_handler(int client, ucred *cred) {
+void zygisk_handler(int client, const sock_cred *cred) {
     int code = read_int(client);
     switch (code) {
     case ZYGISK_SETUP:

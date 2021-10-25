@@ -27,7 +27,7 @@ using namespace std;
     exit(1);
 }
 
-void magiskhide_handler(int client, ucred *cred) {
+void magiskhide_handler(int client, const sock_cred *cred) {
     int req = read_int(client);
     int res = DAEMON_ERROR;
 
