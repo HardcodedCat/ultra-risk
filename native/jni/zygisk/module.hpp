@@ -82,9 +82,13 @@ struct ZygiskModule {
     }
 
     int connectCompanion() const;
+    void setOption(zygisk::Option opt);
     static bool registerModule(ApiTable *table, long *module);
 
-    ZygiskModule(int id) : id(id) {}
+    ZygiskModule(int id, void *handle) : handle(handle), id(id) {}
+
+    void * const handle;
+    bool unload = false;
 
 private:
     int id;
@@ -107,6 +111,7 @@ struct ApiTable {
             bool (*pltHookCommit)();
 
             int (*connectCompanion)(ZygiskModule *);
+            void (*setOption)(ZygiskModule *, zygisk::Option);
         } v1;
     };
     ApiTable(ZygiskModule *m) : module(m), registerModule(&ZygiskModule::registerModule) {}

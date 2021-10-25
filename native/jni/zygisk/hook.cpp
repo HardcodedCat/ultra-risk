@@ -281,6 +281,7 @@ bool ZygiskModule::registerModule(ApiTable *table, long *module) {
     };
     table->v1.pltHookCommit = []() { return xhook_refresh(0) == 0; };
     table->v1.connectCompanion = [](ZygiskModule *m) { return m->connectCompanion(); };
+    table->v1.setOption = [](ZygiskModule *m, auto opt) { m->setOption(opt); };
 
     return true;
 }
@@ -295,6 +296,16 @@ int ZygiskModule::connectCompanion() const {
     return -1;
 }
 
+void ZygiskModule::setOption(zygisk::Option opt) {
+    if (g_ctx == nullptr)
+        return;
+    switch (opt) {
+    case zygisk::DLCLOSE_MODULE_LIBRARY:
+        unload = true;
+        break;
+    }
+}
+
 void HookContext::run_modules_pre(const vector<int> &fds) {
     char buf[256];
     for (int i = 0; i < fds.size(); ++i) {
@@ -303,7 +314,7 @@ void HookContext::run_modules_pre(const vector<int> &fds) {
             void (*module_entry)(void *, void *);
             *(void **) &module_entry = dlsym(h, "zygisk_module_entry");
             if (module_entry) {
-                modules.emplace_back(i);
+                modules.emplace_back(i, h);
                 auto api = new ApiTable(&modules.back());
                 module_entry(api, env);
             }
@@ -325,6 +336,9 @@ void HookContext::run_modules_post() {
             m.postAppSpecialize(args);
         } else if (flags[SERVER_SPECIALIZE]) {
             m.postServerSpecialize(server_args);
+        }
+        if (m.unload) {
+            dlclose(m.handle);
         }
     }
 }

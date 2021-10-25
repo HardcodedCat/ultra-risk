@@ -30,16 +30,18 @@ class ExampleModule : public zygisk::ModuleBase {
 public:
     void onLoad(zygisk::Api *api, JNIEnv *env) override {
         this->api = api;
+        this->env = env;
     }
     void preAppSpecialize(zygisk::AppSpecializeArgs *args) override {
         JNINativeMethod methods[] = {
             { "logger_entry_max_payload_native", "()I", (void*) my_logger_entry_max },
         };
-        api->hookJniNativeMethods("android/util/Log", methods, 1);
+        api->hookJniNativeMethods(env, "android/util/Log", methods, 1);
         *(void **) &orig_logger_entry_max = methods[0].fnPtr;
     }
 private:
     zygisk::Api *api;
+    JNIEnv *env;
 };
 
 REGISTER_ZYGISK_MODULE(ExampleModule)
@@ -129,6 +131,14 @@ struct api_table;
 template <class T> void entry_impl(api_table *, JNIEnv *);
 }
 
+// These values are used in Api::setOption(Option)
+enum Option : int {
+    // When this option is set, your module's library will be dlclose-ed after post[XXX]Specialize.
+    // Be aware that after dlclose-ing your module, all of your code will be unmapped.
+    // YOU SHOULD NOT ENABLE THIS OPTION AFTER HOOKING ANY FUNCTION IN THE PROCESS.
+    DLCLOSE_MODULE_LIBRARY = 1,
+};
+
 struct Api {
 
     // Connect to a root companion process and get a Unix domain socket for IPC.
@@ -144,6 +154,11 @@ struct Api {
     // Returns a file descriptor to a socket that is connected to the socket passed to your
     // module's companion request handler. Returns -1 if the connection attempt failed.
     int connectCompanion();
+
+    // Set various options for your module.
+    // Please note that this function accepts one single option at a time.
+    // Check zygisk::Option for the full list of options available.
+    void setOption(Option opt);
 
     // Hook JNI native methods for a class
     //
@@ -227,6 +242,7 @@ struct api_table {
 
     // Zygisk functions
     int  (*connectCompanion)(void * /* _this */);
+    void (*setOption)(void * /* _this */, Option);
 };
 
 template <class T>
@@ -243,6 +259,9 @@ void entry_impl(api_table *table, JNIEnv *env) {
 
 int Api::connectCompanion() {
     return impl->connectCompanion(impl->_this);
+}
+void Api::setOption(Option opt) {
+    impl->setOption(impl->_this, opt);
 }
 void Api::hookJniNativeMethods(JNIEnv *env, const char *className, JNINativeMethod *methods, int numMethods) {
     impl->hookJniNativeMethods(env, className, methods, numMethods);
