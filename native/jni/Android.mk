@@ -33,10 +33,10 @@ LOCAL_SRC_FILES := \
     su/pts.cpp \
     su/su_daemon.cpp \
     zygisk/entry.cpp \
+    zygisk/main.cpp \
     zygisk/utils.cpp \
     zygisk/hook.cpp \
-    zygisk/memory.cpp \
-    zygisk/companion.cpp
+    zygisk/memory.cpp
 
 LOCAL_LDLIBS := -llog
 
