@@ -93,7 +93,7 @@ void hide_unmount(int pid) {
     if (pid > 0 && switch_mnt_ns(pid))
         return;
 
-    LOGD("hide: handling PID=[%d]\n", pid);
+    LOGD("hide: handling PID=[%d]\n", pid > 0 ? pid : getpid());
 
     char val;
     int fd = xopen(SELINUX_ENFORCE, O_RDONLY);

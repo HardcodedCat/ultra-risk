@@ -124,6 +124,8 @@ static void inject_init() {
     }
 }
 
+// Start code for magiskd IPC
+
 int app_process_main(int argc, char *argv[]) {
     android_logging();
 
