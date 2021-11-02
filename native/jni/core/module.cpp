@@ -697,6 +697,12 @@ static void collect_modules(bool open_zygisk) {
             return;
         module_info info;
         if (zygisk_enabled) {
+            // Riru and its modules are not compatible with zygisk
+            if (entry->d_name == "riru-core"sv || faccessat(modfd, "riru", F_OK, 0) == 0) {
+                close(openat(modfd, "disable", O_CREAT | O_WRONLY, S_IRWXU));
+                LOGI("%s: disable\n", entry->d_name);
+                return;
+            }
             if (open_zygisk) {
 #if defined(__arm__)
                 info.z32 = openat(modfd, "zygisk/armeabi-v7a.so", O_RDONLY | O_CLOEXEC);
