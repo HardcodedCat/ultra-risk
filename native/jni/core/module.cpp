@@ -718,6 +718,13 @@ static void collect_modules(bool open_zygisk) {
 #error Unsupported ABI
 #endif
             }
+        } else {
+            // Disable zygisk modules when zygisk is not enabled
+            if (faccessat(modfd, "zygisk", F_OK, 0) == 0) {
+                close(openat(modfd, "disable", O_CREAT | O_WRONLY, S_IRWXU));
+                LOGI("%s: disable\n", entry->d_name);
+                return;
+            }
         }
         info.name = entry->d_name;
         modules->push_back(info);
