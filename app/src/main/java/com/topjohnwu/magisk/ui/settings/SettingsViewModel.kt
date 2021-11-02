@@ -63,7 +63,7 @@ class SettingsViewModel(
             if (Const.USER_ID == 0) {
                 if (hidden)
                     list.add(Restore)
-                else if (Info.isConnected.get())
+                else
                     list.add(Hide)
             }
         }
