@@ -40,6 +40,7 @@ struct AppInfo {
     bool is_magisk_app;
 };
 
+void unload_first_stage();
 void self_unload();
 void hook_functions();
 bool unhook_functions();
