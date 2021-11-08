@@ -40,8 +40,8 @@ struct AppInfo {
     bool is_magisk_app;
 };
 
+extern void *self_handle;
+
 void unload_first_stage();
-void self_unload();
 void hook_functions();
-bool unhook_functions();
 std::vector<int> remote_get_info(int uid, const char *process, AppInfo *info);
