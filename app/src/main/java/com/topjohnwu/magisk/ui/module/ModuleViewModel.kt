@@ -50,6 +50,9 @@ class ModuleViewModel(
     private val repoUpdater: RepoUpdater
 ) : BaseViewModel(), Queryable {
 
+    val bottomBarBarrierIds =
+        intArrayOf(R.id.module_info, R.id.module_remove)
+
     override val queryDelay = 1000L
     private var queryJob: Job? = null
     private var remoteJob: Job? = null
