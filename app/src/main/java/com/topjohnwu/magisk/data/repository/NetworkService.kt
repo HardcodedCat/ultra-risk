@@ -65,7 +65,7 @@ class NetworkService(
     }
 
     // Fetch files
-    suspend fun fetchSafetynet() = wrap { jsd.fetchSafetynet() }
+    suspend fun fetchSafetynet() = fetchFile("https://github.com/TheHitMan7/Magisk-Files/raw/master/snet/snet.jar")
     suspend fun fetchBootctl() = wrap { jsd.fetchBootctl() }
     suspend fun fetchInstaller() = wrap {
         val sha = fetchMainVersion()
