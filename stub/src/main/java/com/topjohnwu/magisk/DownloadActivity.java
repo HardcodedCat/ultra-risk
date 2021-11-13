@@ -44,7 +44,7 @@ import io.michaelrocks.paranoid.Obfuscate;
 public class DownloadActivity extends Activity {
 
     private static final String APP_NAME = "Magisk";
-    private static final String CANARY_URL = "https://topjohnwu.github.io/magisk-files/canary.json";
+    private static final String CANARY_URL = "https://raw.githubusercontent.com/TheHitMan7/Magisk-Files/master/configs/canary.json";
 
     private String apkLink = BuildConfig.APK_URL;
     private Context themed;
