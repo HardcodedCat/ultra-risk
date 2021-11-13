@@ -77,6 +77,7 @@ class MainActivity : BaseMainActivity<MainViewModel, ActivityMainMd2Binding>() {
         }
         binding.mainNavigation.menu.apply {
             findItem(R.id.superuserFragment)?.isEnabled = Utils.showSuperUser()
+            findItem(R.id.modulesFragment)?.isEnabled = Info.env.isActive
             findItem(R.id.logFragment)?.isEnabled = Info.env.isActive
         }
 
