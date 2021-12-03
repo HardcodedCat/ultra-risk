@@ -177,10 +177,6 @@ DCL_HOOK_FUNC(int, selinux_android_setcontext,
 // A place to clean things up before zygote evaluates fd table
 DCL_HOOK_FUNC(void, android_log_close) {
     HookContext::close_fds();
-    if (g_ctx && g_ctx->pid <= 0) {
-        // In child process, no longer be able to access to magiskd
-        android_logging();
-    }
     old_android_log_close();
 }
 
@@ -432,6 +428,9 @@ void HookContext::nativeSpecializeAppProcess_pre() {
 
     auto module_fds = remote_get_info(args->uid, process, &info);
     run_modules_pre(module_fds);
+
+    close_fds();
+    android_logging();
 }
 
 void HookContext::nativeSpecializeAppProcess_post() {
@@ -459,12 +458,12 @@ void HookContext::nativeForkSystemServer_pre() {
         ZLOGV("pre  forkSystemServer\n");
         run_modules_pre(remote_get_info(1000, "system_server", &info));
         close_fds();
+        android_logging();
     }
 }
 
 void HookContext::nativeForkSystemServer_post() {
     if (pid == 0) {
-        android_logging();
         ZLOGV("post forkSystemServer\n");
         run_modules_post();
     }
@@ -476,13 +475,11 @@ void HookContext::nativeForkAndSpecialize_pre() {
     flags[FORK_AND_SPECIALIZE] = true;
     if (pid == 0) {
         nativeSpecializeAppProcess_pre();
-        close_fds();
     }
 }
 
 void HookContext::nativeForkAndSpecialize_post() {
     if (pid == 0) {
-        android_logging();
         nativeSpecializeAppProcess_post();
     }
     fork_post();
