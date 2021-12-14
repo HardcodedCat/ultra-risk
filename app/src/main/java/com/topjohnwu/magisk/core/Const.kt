@@ -32,9 +32,9 @@ object Const {
         const val MIN_VERSION = "v20.4"
         const val MIN_VERCODE = 20400
 
-        fun atLeast_21_0() = Info.env.magiskVersionCode >= 21000 || isCanary()
-        fun atLeast_21_2() = Info.env.magiskVersionCode >= 21200 || isCanary()
-        fun isCanary() = Info.env.magiskVersionCode % 100 != 0
+        fun atLeast_21_0() = Info.env.versionCode >= 21000 || isCanary()
+        fun atLeast_21_2() = Info.env.versionCode >= 21200 || isCanary()
+        fun isCanary() = Info.env.versionCode % 100 != 0
     }
 
     object ID {

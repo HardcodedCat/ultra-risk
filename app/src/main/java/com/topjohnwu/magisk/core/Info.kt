@@ -57,17 +57,17 @@ object Info {
     )
 
     class Env(
-        val magiskVersionString: String = "",
+        val versionString: String = "",
         code: Int = -1,
         hide: Boolean = false
     ) {
         val magiskHide get() = Config.magiskHide
-        val magiskVersionCode = when {
+        val versionCode = when {
             code < Const.Version.MIN_VERCODE -> -1
             else -> if (Shell.rootAccess()) code else -1
         }
         val isUnsupported = code > 0 && code < Const.Version.MIN_VERCODE
-        val isActive = magiskVersionCode >= 0
+        val isActive = versionCode >= 0
 
         init {
             Config.magiskHide = hide

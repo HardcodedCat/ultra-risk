@@ -46,7 +46,7 @@ class HomeViewModel(
     val stateMagisk
         get() = when {
             !Info.env.isActive -> MagiskState.NOT_INSTALLED
-            Info.env.magiskVersionCode < BuildConfig.VERSION_CODE -> MagiskState.OBSOLETE
+            Info.env.versionCode < BuildConfig.VERSION_CODE -> MagiskState.OBSOLETE
             else -> MagiskState.UP_TO_DATE
         }
 
@@ -57,7 +57,7 @@ class HomeViewModel(
     val magiskInstalledVersion
         get() = Info.env.run {
             if (isActive)
-                "$magiskVersionString ($magiskVersionCode)".asText()
+                "$versionString ($versionCode)".asText()
             else
                 R.string.not_available.asText()
         }
@@ -141,7 +141,7 @@ class HomeViewModel(
 
     private suspend fun ensureEnv() {
         if (MagiskState.NOT_INSTALLED == stateMagisk || shownDialog) return
-        val cmd = "env_check ${Info.env.magiskVersionString} ${Info.env.magiskVersionCode}"
+        val cmd = "env_check ${Info.env.versionString} ${Info.env.versionCode}"
         if (!Shell.su(cmd).await().isSuccess) {
             shownDialog = true
             EnvFixDialog().publish()
