@@ -38,7 +38,7 @@ open class DownloadService : BaseDownloader() {
 
     private fun Manager.onFinish(id: Int) {
         remove(id)
-        APKInstall.install(context, file.toFile())
+        APKInstall.installapk(context, file.toFile())
     }
 
     // --- Customize finish notification
