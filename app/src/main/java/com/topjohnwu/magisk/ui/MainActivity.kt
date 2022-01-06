@@ -12,6 +12,7 @@ import android.view.WindowManager
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.view.forEach
 import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.interpolator.view.animation.FastOutLinearInInterpolator
 import androidx.interpolator.view.animation.LinearOutSlowInInterpolator
 import androidx.navigation.NavDirections
@@ -37,6 +38,15 @@ class MainActivity : BaseMainActivity<MainViewModel, ActivityMainMd2Binding>() {
     override val layoutRes = R.layout.activity_main_md2
     override val viewModel by viewModel<MainViewModel>()
     override val navHostId: Int = R.id.main_nav_host
+    override val snackbarAnchorView: View?
+        get() {
+            val fragmentAnchor = currentFragment?.snackbarAnchorView
+            return when {
+                fragmentAnchor?.isVisible == true -> fragmentAnchor
+                binding.mainNavigation.isVisible -> return binding.mainNavigation
+                else -> null
+            }
+        }
 
     private var isRootFragment = true
 
