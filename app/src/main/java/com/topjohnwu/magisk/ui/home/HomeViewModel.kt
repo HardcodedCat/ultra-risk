@@ -81,7 +81,7 @@ class HomeViewModel(
         it.bindExtra(BR.viewModel, this)
     }
 
-    private var shownDialog = false
+    private var checkedEnv = false
 
     override fun refresh() = viewModelScope.launch {
         state = State.LOADING
@@ -140,12 +140,12 @@ class HomeViewModel(
     }
 
     private suspend fun ensureEnv() {
-        if (MagiskState.NOT_INSTALLED == stateMagisk || shownDialog) return
+        if (MagiskState.NOT_INSTALLED == stateMagisk || checkedEnv) return
         val cmd = "env_check ${Info.env.versionString} ${Info.env.versionCode}"
         if (!Shell.su(cmd).await().isSuccess) {
-            shownDialog = true
             EnvFixDialog(this).publish()
         }
+        checkedEnv = true
     }
 
 }
