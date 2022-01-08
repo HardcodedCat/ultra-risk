@@ -78,10 +78,7 @@ dependencies {
     implementation("com.github.topjohnwu:indeterminate-checkbox:1.0.7")
     implementation("com.github.topjohnwu:lz4-java:1.7.1")
     implementation("com.jakewharton.timber:timber:4.7.1")
-
-    val vBC = "1.69"
-    implementation("org.bouncycastle:bcprov-jdk15on:${vBC}")
-    implementation("org.bouncycastle:bcpkix-jdk15on:${vBC}")
+    implementation("org.bouncycastle:bcpkix-jdk15on:1.70")
 
     val vBAdapt = "4.0.0"
     val bindingAdapter = "me.tatarka.bindingcollectionadapter2:bindingcollectionadapter"
@@ -104,16 +101,16 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-moshi:${vRetrofit}")
     implementation("com.squareup.retrofit2:converter-scalars:${vRetrofit}")
 
-    val vOkHttp = "4.9.2"
+    val vOkHttp = "4.9.3"
     implementation("com.squareup.okhttp3:okhttp:${vOkHttp}")
     implementation("com.squareup.okhttp3:logging-interceptor:${vOkHttp}")
     implementation("com.squareup.okhttp3:okhttp-dnsoverhttps:${vOkHttp}")
 
-    val vMoshi = "1.12.0"
+    val vMoshi = "1.13.0"
     implementation("com.squareup.moshi:moshi:${vMoshi}")
     kapt("com.squareup.moshi:moshi-kotlin-codegen:${vMoshi}")
 
-    val vRoom = "2.3.0"
+    val vRoom = "2.4.0-rc01"
     implementation("androidx.room:room-runtime:${vRoom}")
     implementation("androidx.room:room-ktx:${vRoom}")
     kapt("androidx.room:room-compiler:${vRoom}")
