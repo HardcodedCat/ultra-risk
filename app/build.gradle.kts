@@ -94,7 +94,7 @@ dependencies {
     implementation("io.noties.markwon:image:${vMarkwon}")
     implementation("com.caverock:androidsvg:1.4")
 
-    val vLibsu = "3.1.2"
+    val vLibsu = "3.2.0"
     implementation("com.github.topjohnwu.libsu:core:${vLibsu}")
     implementation("com.github.topjohnwu.libsu:io:${vLibsu}")
 
@@ -117,7 +117,7 @@ dependencies {
     implementation("androidx.room:room-ktx:${vRoom}")
     kapt("androidx.room:room-compiler:${vRoom}")
 
-    val vNav = "2.4.0-alpha10"
+    val vNav = "2.4.0-beta02"
     implementation("androidx.navigation:navigation-fragment-ktx:${vNav}")
     implementation("androidx.navigation:navigation-ui-ktx:${vNav}")
 
