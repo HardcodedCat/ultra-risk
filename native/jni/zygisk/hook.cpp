@@ -153,7 +153,7 @@ DCL_HOOK_FUNC(int, fork) {
 // Unmount app_process overlays in the process's private mount namespace
 DCL_HOOK_FUNC(int, unshare, int flags) {
     int res = old_unshare(flags);
-    if (g_ctx && res == 0) {
+    if (g_ctx && (flags & CLONE_NEWNS) != 0 && res == 0) {
         umount2("/system/bin/app_process64", MNT_DETACH);
         umount2("/system/bin/app_process32", MNT_DETACH);
     }
