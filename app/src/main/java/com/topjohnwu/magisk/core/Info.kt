@@ -35,13 +35,18 @@ object Info {
     @JvmStatic val isFDE get() = crypto == "block"
     @JvmField var ramdisk = false
     @JvmField var vbmeta = false
+
+    var crypto = ""
+    var noDataExec = false
+
     @JvmField var hasGMS = true
     @JvmField val isPixel = Build.BRAND == "google"
+
+    val isSamsung = Build.MANUFACTURER.equals("samsung", ignoreCase = true)
+
     @JvmField val isEmulator =
         getProperty("ro.kernel.qemu", "0") == "1" ||
         getProperty("ro.boot.qemu", "0") == "1"
-    var crypto = ""
-    var noDataExec = false
 
     val isConnected by lazy {
         ObservableBoolean(false).also { field ->
