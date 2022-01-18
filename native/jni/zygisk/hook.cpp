@@ -45,12 +45,13 @@ struct HookContext {
         void *raw_args;
     };
     const char *process;
-    int pid;
-    bitset<FLAG_MAX> flags;
-    AppInfo info;
     vector<ZygiskModule> modules;
+    bitset<FLAG_MAX> state;
 
-    HookContext() : pid(-1), info{} {}
+    int pid;
+    uint32_t flags;
+
+    HookContext() : pid(-1), flags(0) {}
 
     static void close_fds();
     void unload_zygisk();
@@ -163,13 +164,13 @@ DCL_HOOK_FUNC(int, unshare, int flags) {
 // This is the latest point where we can still connect to the magiskd main socket
 DCL_HOOK_FUNC(int, selinux_android_setcontext,
         uid_t uid, int isSystemServer, const char *seinfo, const char *pkgname) {
-    if (g_ctx && g_ctx->flags[HIDE_FLAG]) {
+    if (g_ctx && g_ctx->state[HIDE_FLAG]) {
         remote_request_hide();
         ZLOGD("process successfully hidden\n");
     }
     // Last point before process secontext changes
     if (g_ctx) {
-        g_ctx->flags[CAN_DLCLOSE] = unhook_functions();
+        g_ctx->state[CAN_DLCLOSE] = unhook_functions();
     }
     return old_selinux_android_setcontext(uid, isSystemServer, seinfo, pkgname);
 }
@@ -298,6 +299,7 @@ bool ZygiskModule::RegisterModule(ApiTable *table, long *module) {
     switch (ver) {
     case 2:
         table->v2.getModuleDir = [](ZygiskModule *m) { return m->getModuleDir(); };
+        table->v2.getFlags = [](auto) { return ZygiskModule::getFlags(); };
         [[fallthrough]];
     case 1:
         table->v1.hookJniNativeMethods = &hookJniNativeMethods;
@@ -351,6 +353,10 @@ void ZygiskModule::setOption(zygisk::Option opt) {
     }
 }
 
+uint32_t ZygiskModule::getFlags() {
+    return g_ctx ? (g_ctx->flags & ~PRIVATE_MASK) : 0;
+}
+
 void HookContext::run_modules_pre(const vector<int> &fds) {
     char buf[256];
 
@@ -382,9 +388,9 @@ void HookContext::run_modules_pre(const vector<int> &fds) {
 
     for (auto &m : modules) {
         m.entry(&m.api, env);
-        if (flags[APP_SPECIALIZE]) {
+        if (state[APP_SPECIALIZE]) {
             m.preAppSpecialize(args);
-        } else if (flags[SERVER_SPECIALIZE]) {
+        } else if (state[SERVER_SPECIALIZE]) {
             m.preServerSpecialize(server_args);
         }
     }
@@ -401,9 +407,9 @@ void HookContext::run_modules_pre(const vector<int> &fds) {
 
 void HookContext::run_modules_post() {
     for (const auto &m : modules) {
-        if (flags[APP_SPECIALIZE]) {
+        if (state[APP_SPECIALIZE]) {
             m.postAppSpecialize(args);
-        } else if (flags[SERVER_SPECIALIZE]) {
+        } else if (state[SERVER_SPECIALIZE]) {
             m.postServerSpecialize(server_args);
         }
         m.doUnload();
@@ -415,7 +421,7 @@ void HookContext::close_fds() {
 }
 
 void HookContext::unload_zygisk() {
-    if (flags[CAN_DLCLOSE]) {
+    if (state[CAN_DLCLOSE]) {
         // Do NOT call the destructor
         operator delete(jni_method_map);
         // Directly unmap the whole memory block
@@ -434,9 +440,9 @@ void HookContext::unload_zygisk() {
 
 void HookContext::nativeSpecializeAppProcess_pre() {
     g_ctx = this;
-    flags[APP_SPECIALIZE] = true;
+    state[APP_SPECIALIZE] = true;
     process = env->GetStringUTFChars(args->nice_name, nullptr);
-    if (flags[FORK_AND_SPECIALIZE]) {
+    if (state[FORK_AND_SPECIALIZE]) {
         ZLOGV("pre  forkAndSpecialize [%s]\n", process);
     } else {
         ZLOGV("pre  specialize [%s]\n", process);
@@ -444,11 +450,11 @@ void HookContext::nativeSpecializeAppProcess_pre() {
 
     // TODO: Handle MOUNT_EXTERNAL_NONE on older platforms
     if (args->mount_external != 0 && remote_check_hide(args->uid, process)) {
-        flags[HIDE_FLAG] = true;
+        g_ctx->state[HIDE_FLAG] = true;
         ZLOGI("[%s] is on the hidelist\n", process);
     }
 
-    auto module_fds = remote_get_info(args->uid, process, &info);
+    auto module_fds = remote_get_info(args->uid, process, &flags);
     run_modules_pre(module_fds);
 
     close_fds();
@@ -456,7 +462,7 @@ void HookContext::nativeSpecializeAppProcess_pre() {
 }
 
 void HookContext::nativeSpecializeAppProcess_post() {
-    if (flags[FORK_AND_SPECIALIZE]) {
+    if (state[FORK_AND_SPECIALIZE]) {
         ZLOGV("post forkAndSpecialize [%s]\n", process);
     } else {
         ZLOGV("post specialize [%s]\n", process);
@@ -464,21 +470,21 @@ void HookContext::nativeSpecializeAppProcess_post() {
 
     env->ReleaseStringUTFChars(args->nice_name, process);
     run_modules_post();
-    if (info.is_magisk_app) {
+    if (flags & PROCESS_IS_MAGISK_APP) {
         setenv("ZYGISK_ENABLED", "1", 1);
     }
     g_ctx = nullptr;
-    if (!flags[FORK_AND_SPECIALIZE]) {
+    if (!state[FORK_AND_SPECIALIZE]) {
         unload_zygisk();
     }
 }
 
 void HookContext::nativeForkSystemServer_pre() {
     fork_pre();
-    flags[SERVER_SPECIALIZE] = true;
+    state[SERVER_SPECIALIZE] = true;
     if (pid == 0) {
         ZLOGV("pre  forkSystemServer\n");
-        run_modules_pre(remote_get_info(1000, "system_server", &info));
+        run_modules_pre(remote_get_info(1000, "system_server", &flags));
         close_fds();
         android_logging();
     }
@@ -494,7 +500,7 @@ void HookContext::nativeForkSystemServer_post() {
 
 void HookContext::nativeForkAndSpecialize_pre() {
     fork_pre();
-    flags[FORK_AND_SPECIALIZE] = true;
+    state[FORK_AND_SPECIALIZE] = true;
     if (pid == 0) {
         nativeSpecializeAppProcess_pre();
     }
@@ -520,7 +526,7 @@ void HookContext::fork_pre() {
     g_ctx = this;
     sigmask(SIG_BLOCK, SIGCHLD);
     pid = old_fork();
-    if (flags[HIDE_FLAG]) {
+    if (g_ctx->state[HIDE_FLAG]) {
         unload_zygisk();
     }
 }

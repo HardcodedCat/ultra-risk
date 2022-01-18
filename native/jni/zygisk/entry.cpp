@@ -9,6 +9,8 @@
 #include <db.hpp>
 
 #include "zygisk.hpp"
+#include "module.hpp"
+
 #include "../magiskhide/magiskhide.hpp"
 
 using namespace std;
@@ -166,7 +168,7 @@ static int zygisk_log(int prio, const char *fmt, va_list ap) {
     return ret;
 }
 
-std::vector<int> remote_get_info(int uid, const char *process, AppInfo *info) {
+std::vector<int> remote_get_info(int uid, const char *process, uint32_t *flags) {
     vector<int> fds;
     if (int fd = connect_daemon(); fd >= 0) {
         write_int(fd, ZYGISK_REQUEST);
@@ -174,7 +176,7 @@ std::vector<int> remote_get_info(int uid, const char *process, AppInfo *info) {
 
         write_int(fd, uid);
         write_string(fd, process);
-        xxread(fd, info, sizeof(*info));
+        xxread(fd, flags, sizeof(*flags));
 
         fds = recv_fds(fd);
 
@@ -315,10 +317,12 @@ static void magiskd_passthrough(int client) {
 int cached_manager_app_id = -1;
 static time_t last_modified = 0;
 
+extern bool uid_granted_root(int uid);
 static void get_process_info(int client, const sock_cred *cred) {
-    AppInfo info{};
     int uid = read_int(client);
     string process = read_string(client);
+
+    uint32_t flags = 0;
 
     // This function is called on every single zygote process specialization,
     // so performance is critical. get_manager_app_id() is expensive as it goes
@@ -348,11 +352,15 @@ static void get_process_info(int client, const sock_cred *cred) {
         }
 
         if (to_app_id(uid) == manager_app_id) {
-            info.is_magisk_app = true;
+            flags |= PROCESS_IS_MAGISK_APP;
+        }
+
+        if (uid_granted_root(uid)) {
+            flags |= PROCESS_GRANTED_ROOT;
         }
     }
 
-    xwrite(client, &info, sizeof(info));
+    xwrite(client, &flags, sizeof(flags));
 
     char buf[256];
     get_exe(cred->pid, buf, sizeof(buf));
