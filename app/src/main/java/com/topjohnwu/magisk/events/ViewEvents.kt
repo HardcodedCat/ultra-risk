@@ -75,10 +75,12 @@ class MagiskInstallFileEvent(
 }
 
 class NavigationEvent(
-    private val directions: NavDirections
+    private val directions: NavDirections,
+    private val pop: Boolean
 ) : ViewEvent(), ActivityExecutor {
     override fun invoke(activity: BaseUIActivity<*, *>) {
         (activity as? BaseUIActivity<*, *>)?.apply {
+            if (pop) navigation?.popBackStack()
             directions.navigate()
         }
     }
