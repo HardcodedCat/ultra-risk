@@ -116,6 +116,7 @@ struct ZygiskModule {
     void setOption(zygisk::Option opt);
     static uint32_t getFlags();
     void doUnload() const { if (unload) dlclose(handle); }
+    int getId() const { return id; }
 
     ZygiskModule(int id, void *handle, void *entry);
 
