@@ -137,6 +137,7 @@ object HideAPK {
         val dialog = android.app.ProgressDialog(activity).apply {
             setTitle(activity.getString(R.string.hide_app_title))
             isIndeterminate = true
+            setCancelable(false)
             show()
         }
         val result = withContext(Dispatchers.IO) {
@@ -153,6 +154,7 @@ object HideAPK {
         val dialog = android.app.ProgressDialog(activity).apply {
             setTitle(activity.getString(R.string.restore_img_msg))
             isIndeterminate = true
+            setCancelable(false)
             show()
         }
         val apk = DynAPK.current(activity)
