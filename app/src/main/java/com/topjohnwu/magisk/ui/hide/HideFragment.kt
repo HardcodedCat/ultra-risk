@@ -10,7 +10,7 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.topjohnwu.magisk.R
-import com.topjohnwu.magisk.arch.BaseUIFragment
+import com.topjohnwu.magisk.arch.BaseFragment
 import com.topjohnwu.magisk.databinding.FragmentHideMd2Binding
 import com.topjohnwu.magisk.di.viewModel
 import com.topjohnwu.magisk.ktx.addSimpleItemDecoration
@@ -19,7 +19,7 @@ import com.topjohnwu.magisk.ktx.fixEdgeEffect
 import com.topjohnwu.magisk.ktx.hideKeyboard
 import com.topjohnwu.magisk.utils.MotionRevealHelper
 
-class HideFragment : BaseUIFragment<HideViewModel, FragmentHideMd2Binding>() {
+class HideFragment : BaseFragment<FragmentHideMd2Binding>() {
 
     override val layoutRes = R.layout.fragment_hide_md2
     override val viewModel by viewModel<HideViewModel>()

@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.topjohnwu.magisk.BuildConfig
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.arch.ActivityExecutor
-import com.topjohnwu.magisk.arch.BaseUIActivity
+import com.topjohnwu.magisk.arch.UIActivity
 import com.topjohnwu.magisk.arch.BaseViewModel
 import com.topjohnwu.magisk.arch.ViewEvent
 import com.topjohnwu.magisk.core.Config
@@ -112,7 +112,7 @@ class HomeViewModel(
     val showTest = false
 
     fun onTestPressed() = object : ViewEvent(), ActivityExecutor {
-        override fun invoke(activity: BaseUIActivity<*, *>) {
+        override fun invoke(activity: UIActivity<*>) {
             /* Entry point to trigger test events within the app */
         }
     }.publish()

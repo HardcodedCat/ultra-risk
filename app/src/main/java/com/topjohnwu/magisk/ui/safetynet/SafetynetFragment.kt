@@ -5,11 +5,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.topjohnwu.magisk.R
-import com.topjohnwu.magisk.arch.BaseUIFragment
+import com.topjohnwu.magisk.arch.BaseFragment
 import com.topjohnwu.magisk.databinding.FragmentSafetynetMd2Binding
 import com.topjohnwu.magisk.di.viewModel
 
-class SafetynetFragment : BaseUIFragment<SafetynetViewModel, FragmentSafetynetMd2Binding>() {
+class SafetynetFragment : BaseFragment<FragmentSafetynetMd2Binding>() {
 
     override val layoutRes = R.layout.fragment_safetynet_md2
     override val viewModel by viewModel<SafetynetViewModel>()
