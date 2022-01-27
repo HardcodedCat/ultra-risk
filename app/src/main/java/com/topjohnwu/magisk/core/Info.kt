@@ -40,7 +40,6 @@ object Info {
     var noDataExec = false
 
     @JvmField var hasGMS = true
-    @JvmField val isPixel = Build.BRAND == "google"
 
     val isSamsung = Build.MANUFACTURER.equals("samsung", ignoreCase = true)
 
