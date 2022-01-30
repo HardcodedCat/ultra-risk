@@ -118,22 +118,19 @@ class CheckSafetyNetEvent(
     }
 
     private fun showDialog(context: Context) {
-        MagiskDialog(context)
-            .applyTitle(R.string.proprietary_title)
-            .applyMessage(R.string.proprietary_notice)
-            .cancellable(false)
-            .applyButton(MagiskDialog.ButtonType.POSITIVE) {
-                titleRes = android.R.string.ok
+        MagiskDialog(context).apply {
+            setTitle(R.string.proprietary_title)
+            setMessage(R.string.proprietary_notice)
+            setCancelable(false)
+            setButton(MagiskDialog.ButtonType.POSITIVE) {
+                text = android.R.string.ok
                 onClick { download(context) }
             }
-            .applyButton(MagiskDialog.ButtonType.NEGATIVE) {
-                titleRes = android.R.string.cancel
+            setButton(MagiskDialog.ButtonType.NEGATIVE) {
+                text = android.R.string.cancel
                 onClick { callback(SafetyNetResult(dismiss = true)) }
             }
-            .onCancel {
-                callback(SafetyNetResult(dismiss = true))
-            }
-            .reveal()
+        }.show()
     }
 
     private fun String.decode(): ByteArray {
