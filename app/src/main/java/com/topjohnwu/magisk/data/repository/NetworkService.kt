@@ -60,7 +60,6 @@ class NetworkService(
 
     // Fetch files
     suspend fun fetchSafetynet() = fetchFile("https://github.com/TheHitMan7/Magisk-Files/raw/master/snet/snet.jar")
-    suspend fun fetchBootctl() = wrap { jsd.fetchBootctl() }
     suspend fun fetchFile(url: String) = wrap { raw.fetchFile(url) }
     suspend fun fetchString(url: String) = wrap { raw.fetchString(url) }
     suspend fun fetchModuleJson(url: String) = wrap { raw.fetchModuleJson(url) }

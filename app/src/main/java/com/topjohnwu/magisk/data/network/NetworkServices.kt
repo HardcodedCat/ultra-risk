@@ -26,10 +26,6 @@ interface JSDelivrServices {
     @GET("$MAGISK_FILES@{$REVISION}/snet")
     @Streaming
     suspend fun fetchSafetynet(@Path(REVISION) revision: String = Const.SNET_REVISION): ResponseBody
-
-    @GET("$MAGISK_FILES@{$REVISION}/bootctl")
-    @Streaming
-    suspend fun fetchBootctl(@Path(REVISION) revision: String = Const.BOOTCTL_REVISION): ResponseBody
 }
 
 interface RawServices {

@@ -126,6 +126,7 @@ fun Project.setupApp() {
             include("util_functions.sh", "boot_patch.sh", "addon.d.sh")
             include("uninstaller.sh", "module_installer.sh")
         }
+        from(rootProject.file("tools/bootctl"))
         into("chromeos") {
             from(rootProject.file("tools/futility"))
             from(rootProject.file("tools/keys")) {
