@@ -67,9 +67,11 @@ class SettingsViewModel : BaseViewModel(), BaseSettingsItem.Handler {
         // Magisk
         if (Info.env.isActive) {
             list.addAll(listOf(
-                Magisk,
-                Zygisk, MagiskHide, SystemlessHosts
+                Magisk
             ))
+            if (Const.Version.atLeast_24_0()) {
+                list.addAll(listOf(Zygisk, MagiskHide, SystemlessHosts))
+            }
         }
 
         // Superuser
