@@ -2,7 +2,6 @@ package com.topjohnwu.magisk.data.network
 
 import com.topjohnwu.magisk.core.Const
 import com.topjohnwu.magisk.core.model.BranchInfo
-import com.topjohnwu.magisk.core.model.RepoJson
 import com.topjohnwu.magisk.core.model.UpdateInfo
 import okhttp3.ResponseBody
 import retrofit2.http.*
@@ -40,9 +39,6 @@ interface RawServices {
 
     @GET
     suspend fun fetchCustomUpdate(@Url url: String): UpdateInfo
-
-    @GET
-    suspend fun fetchRepoInfo(@Url url: String): RepoJson
 
     @GET
     @Streaming
