@@ -458,8 +458,8 @@ void HookContext::nativeSpecializeAppProcess_pre() {
     int fd = remote_get_info(args->uid, process, &flags, module_fds);
     if (fd >= 0) {
         run_modules_pre(module_fds);
-        write_int(fd, 0);
     }
+    write_int(fd, 0);
     close(fd);
 
     close_fds();
