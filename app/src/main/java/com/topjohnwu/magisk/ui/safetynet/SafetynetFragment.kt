@@ -16,7 +16,7 @@ class SafetynetFragment : BaseFragment<FragmentSafetynetMd2Binding>() {
 
     override fun onStart() {
         super.onStart()
-        activity.setTitle(R.string.safetynet)
+        activity?.setTitle(R.string.safetynet)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {

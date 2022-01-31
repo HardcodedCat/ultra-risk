@@ -33,7 +33,7 @@ class HideFragment : BaseFragment<FragmentHideMd2Binding>() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        activity.setTitle(R.string.magiskhide)
+        activity?.setTitle(R.string.magiskhide)
         setHasOptionsMenu(true)
     }
 
