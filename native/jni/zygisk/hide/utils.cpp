@@ -14,8 +14,13 @@
 
 using namespace std;
 
-static set<pair<string, string>> *hide_set;          /* set of <pkg, process> pair */
-static map<int, vector<string_view>> *uid_proc_map;  /* uid -> list of process */
+// Package name -> list of process names
+using str_set = set<string, StringCmp>;
+static map<string, str_set, StringCmp> *hide_map_;
+#define hide_map (*hide_map_)
+
+// app ID -> list of process name
+static map<int, vector<string_view>> *uid_proc_map;
 static int inotify_fd = -1;
 
 // Locks the variables above
@@ -42,29 +47,29 @@ static void update_uid_map() {
         return;
     }
 
-    string_view prev_pkg;
-    struct stat st;
-    for (const auto &hide : *hide_set) {
-        if (hide.first == ISOLATED_MAGIC) {
-            // Isolated process
-            (*uid_proc_map)[-1].emplace_back(hide.second);
-        } else if (prev_pkg == hide.first) {
-            // Optimize the case when it's the same package as previous iteration
-            (*uid_proc_map)[to_app_id(st.st_uid)].emplace_back(hide.second);
-        } else {
+    for (const auto &[pkg, procs] : hide_map) {
+        int app_id = -1;
+        if (pkg != ISOLATED_MAGIC) {
             // Traverse the filesystem to find app ID
             for (const auto &user_id : users) {
                 data_path.resize(len);
                 data_path += '/';
                 data_path += user_id;
                 data_path += '/';
-                data_path += hide.first;
-                if (stat(data_path.data(), &st) == 0) {
-                    prev_pkg = hide.first;
-                    (*uid_proc_map)[to_app_id(st.st_uid)].emplace_back(hide.second);
+                data_path += pkg;
+                struct stat st{};
+                if (stat(data_path.data(), &st) != 0) {
+                    app_id = to_app_id(st.st_uid);
                     break;
                 }
             }
+            if (app_id < 0)
+                continue;
+        }
+
+        for (const auto &proc : procs) {
+            (*uid_proc_map)[app_id].emplace_back(proc);
+
         }
     }
 }
@@ -149,17 +154,20 @@ static bool validate(const char *pkg, const char *proc) {
     return pkg_valid && proc_valid;
 }
 
-static void add_hide_set(const char *pkg, const char *proc) {
+static bool add_hide_set(const char *pkg, const char *proc) {
+    auto p = hide_map[pkg].emplace(proc);
+    if (!p.second)
+        return false;
     LOGI("hide_list add: [%s/%s]\n", pkg, proc);
-    hide_set->emplace(pkg, proc);
     if (!do_kill)
-        return;
+        return true;;
     if (str_eql(pkg, ISOLATED_MAGIC)) {
         // Kill all matching isolated processes
         kill_process(proc, true, proc_name_match<&str_starts>);
     } else {
         kill_process(proc);
     }
+    return true;
 }
 
 static void inotify_handler(pollfd *pfd) {
@@ -183,7 +191,7 @@ static bool init_list() {
 
     LOGI("hide_list: initializing internal data structures\n");
 
-    default_new(hide_set);
+    default_new(hide_map_);
     char *err = db_exec("SELECT * FROM hidelist", [](db_row &row) -> bool {
         add_hide_set(row["package_name"].data(), row["process"].data());
         return true;
@@ -220,11 +228,8 @@ static int add_list(const char *pkg, const char *proc) {
         mutex_guard lock(hide_state_lock);
         if (!init_list())
             return DAEMON_ERROR;
-
-        for (const auto &hide : *hide_set)
-            if (hide.first == pkg && hide.second == proc)
-                return HIDE_ITEM_EXIST;
-        add_hide_set(pkg, proc);
+        if (!add_hide_set(pkg, proc))
+            return HIDE_ITEM_EXIST;
         update_uid_map();
     }
 
@@ -250,13 +255,19 @@ static int rm_list(const char *pkg, const char *proc) {
             return DAEMON_ERROR;
 
         bool remove = false;
-        for (auto it = hide_set->begin(); it != hide_set->end();) {
-            if (it->first == pkg && (proc[0] == '\0' || it->second == proc)) {
+
+        if (proc[0] == '\0') {
+            if (hide_map.erase(pkg) != 0) {
                 remove = true;
-                LOGI("hide_list rm: [%s/%s]\n", it->first.data(), it->second.data());
-                it = hide_set->erase(it);
-            } else {
-                ++it;
+                LOGI("hide_list rm: [%s]\n", pkg);
+            }
+        } else {
+            auto it = hide_map.find(pkg);
+            if (it != hide_map.end()) {
+                if (it->second.erase(proc) != 0) {
+                    remove = true;
+                    LOGI("hide_list rm: [%s/%s]\n", pkg, proc);
+                }
             }
         }
         if (!remove)
@@ -290,11 +301,14 @@ void ls_list(int client) {
         }
 
         write_int(client, DAEMON_SUCCESS);
-        for (const auto &hide : *hide_set) {
-            write_int(client, hide.first.size() + hide.second.size() + 1);
-            xwrite(client, hide.first.data(), hide.first.size());
-            xwrite(client, "|", 1);
-            xwrite(client, hide.second.data(), hide.second.size());
+
+        for (const auto &[pkg, procs] : hide_map) {
+            for (const auto &proc : procs) {
+                write_int(client, pkg.size() + proc.size() + 1);
+                xwrite(client, pkg.data(), pkg.size());
+                xwrite(client, "|", 1);
+                xwrite(client, proc.data(), proc.size());
+            }
         }
     }
     write_int(client, 0);
@@ -388,9 +402,9 @@ int stop_magiskhide() {
 
     if (hide_enabled) {
         LOGI("* Disable MagiskHide\n");
-        delete hide_set;
+        delete hide_map_;
         delete uid_proc_map;
-        hide_set = nullptr;
+        hide_map_ = nullptr;
         uid_proc_map = nullptr;
         unregister_poll(inotify_fd, true);
         inotify_fd = -1;
