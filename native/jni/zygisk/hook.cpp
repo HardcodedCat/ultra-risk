@@ -467,7 +467,6 @@ void HookContext::nativeSpecializeAppProcess_pre() {
     } else if (fd >= 0) {
         run_modules_pre(module_fds);
     }
-    write_int(fd, 0);
     close(fd);
 
     close_fds();
