@@ -38,7 +38,7 @@ public final class APKInstall {
     // @WorkerThread
     public static void install(Context context, File apk) {
         try (var src = new FileInputStream(apk);
-             var out = openStream(context, true)) {
+             var out = openStream(context)) {
             if (out != null)
                 transfer(src, out);
         } catch (IOException e) {
@@ -46,7 +46,7 @@ public final class APKInstall {
         }
     }
 
-    public static OutputStream openStream(Context context, boolean silent) {
+    public static OutputStream openStream(Context context) {
         //noinspection InlinedApi
         var flag = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE;
         var intent = new Intent(ACTION_SESSION_UPDATE).setPackage(context.getPackageName());
@@ -54,7 +54,7 @@ public final class APKInstall {
 
         var installer = context.getPackageManager().getPackageInstaller();
         var params = new SessionParams(SessionParams.MODE_FULL_INSTALL);
-        if (silent && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             params.setRequireUserAction(SessionParams.USER_ACTION_NOT_REQUIRED);
         }
         try {
