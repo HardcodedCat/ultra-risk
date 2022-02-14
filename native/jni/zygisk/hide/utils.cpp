@@ -14,21 +14,6 @@
 
 using namespace std;
 
-#define FIRST_APP_UID 10000
-
-struct app_id_bitset : public dynamic_bitset_impl {
-    slot_bits::reference operator[] (size_t pos) {
-        return pos < FIRST_APP_UID ? get(0) : get(pos - FIRST_APP_UID);
-    }
-    bool operator[] (size_t pos) const {
-        return pos < FIRST_APP_UID || get(pos - FIRST_APP_UID);
-    }
-};
-
-// List of all discovered app IDs
-static unique_ptr<app_id_bitset> app_ids_seen_;
-#define app_ids_seen (*app_ids_seen_)
-
 // Package name -> list of process names
 static unique_ptr<map<string, set<string, StringCmp>, StringCmp>> pkg_to_procs_;
 #define pkg_to_procs (*pkg_to_procs_)
@@ -42,8 +27,22 @@ static pthread_mutex_t hide_state_lock = PTHREAD_MUTEX_INITIALIZER;
 
 atomic<bool> hide_enabled = false;
 
+static unsigned long long pkg_xml_ino = 0;
+
 void update_uid_map() {
+    {
+        struct stat st{};
+        stat("/data/system/packages.xml", &st);
+        if (pkg_xml_ino == st.st_ino) {
+            // Packages has not changed
+            return;
+        }
+        pkg_xml_ino = st.st_ino;
+    }
+
     app_id_to_pkgs.clear();
+    cached_manager_app_id = -1;
+
     auto data_dir = xopen_dir(APP_DATA_DIR);
     if (!data_dir)
         return;
@@ -61,7 +60,6 @@ void update_uid_map() {
                     // This app ID has been handled
                     continue;
                 }
-                app_ids_seen[app_id] = true;
                 if (auto it = pkg_to_procs.find(entry->d_name); it != pkg_to_procs.end()) {
                     app_id_to_pkgs[app_id].insert(it->first);
                 }
@@ -93,7 +91,6 @@ static void update_pkg_uid(const string &pkg, bool remove) {
                 }
             } else {
                 app_id_to_pkgs[app_id].insert(pkg);
-                app_ids_seen[app_id] = true;
             }
             break;
         }
@@ -195,7 +192,7 @@ static auto add_hide_set(const char *pkg, const char *proc) {
 }
 
 static bool init_list() {
-    if (app_ids_seen_)
+    if (pkg_to_procs_)
         return true;
 
     LOGI("hide_list: initializing internal data structures\n");
@@ -207,7 +204,6 @@ static bool init_list() {
     });
     db_err_cmd(err, goto error)
 
-    default_new(app_ids_seen_);
     default_new(app_id_to_pkgs_);
     update_uid_map();
 
@@ -405,7 +401,6 @@ int stop_magiskhide() {
 
     if (hide_enabled) {
         LOGI("* Disable MagiskHide\n");
-        app_ids_seen_.reset(nullptr);
         pkg_to_procs_.reset(nullptr);
         app_id_to_pkgs_.reset(nullptr);
     }
@@ -435,6 +430,8 @@ bool is_hide_target(int uid, string_view process, int max_len) {
     if (!init_list())
         return false;
 
+    update_uid_map();
+
     int app_id = to_app_id(uid);
     if (app_id >= 90000) {
         if (auto it = pkg_to_procs.find(ISOLATED_MAGIC); it != pkg_to_procs.end()) {
@@ -455,12 +452,6 @@ bool is_hide_target(int uid, string_view process, int max_len) {
         }
         return false;
     } else {
-        if (!app_ids_seen[app_id]) {
-            // Found new app ID
-            cached_manager_app_id = -1;
-            update_uid_map();
-        }
-
         auto it = app_id_to_pkgs.find(app_id);
         if (it == app_id_to_pkgs.end())
             return false;
