@@ -258,7 +258,7 @@ object DenyList : BaseSettingsItem.Toggle() {
         set(value) {
             field = value
             val cmd = if (value) "enable" else "disable"
-            Shell.su("magisk --denylist $cmd").submit { result ->
+            Shell.cmd("magisk --denylist $cmd").submit { result ->
                 if (result.isSuccess) {
                     Config.denyList = value
                 } else {
@@ -297,7 +297,7 @@ object MagiskHide : BaseSettingsItem.Toggle() {
         set(value) {
             field = value
             val cmd = if (value) "enable" else "disable"
-            Shell.su("magiskhide $cmd").submit { result ->
+            Shell.cmd("magiskhide $cmd").submit { result ->
                 if (result.isSuccess) {
                     Config.magiskHide = value
                 } else {

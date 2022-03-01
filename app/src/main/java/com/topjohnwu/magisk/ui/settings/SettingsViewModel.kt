@@ -135,7 +135,7 @@ class SettingsViewModel : BaseViewModel(), BaseSettingsItem.Handler {
     }
 
     private fun createHosts() {
-        Shell.su("add_hosts_module").submit {
+        Shell.cmd("add_hosts_module").submit {
             Utils.toast(R.string.settings_hosts_toast, Toast.LENGTH_SHORT)
         }
     }

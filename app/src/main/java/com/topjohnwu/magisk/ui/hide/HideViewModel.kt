@@ -52,7 +52,7 @@ class HideViewModel : BaseViewModel() {
         state = State.LOADING
         val (apps, diff) = withContext(Dispatchers.Default) {
             val pm = AppContext.packageManager
-            val hideList = Shell.su("magiskhide ls").exec().out
+            val hideList = Shell.cmd("magiskhide ls").exec().out
                 .map { CmdlineListItem(it) }
             val apps = pm.getInstalledApplications(MATCH_UNINSTALLED_PACKAGES).run {
                 asFlow()
