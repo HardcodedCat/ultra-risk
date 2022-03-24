@@ -10,6 +10,7 @@
 #include "zygisk.hpp"
 #include "memory.hpp"
 #include "module.hpp"
+#include "deny/deny.hpp"
 
 using namespace std;
 using jni_hook::hash_map;
@@ -25,7 +26,8 @@ static bool unhook_functions();
 namespace {
 
 enum {
-    HIDE_FLAG,
+    DO_HIDE,
+    DO_UNMOUNT,
     FORK_AND_SPECIALIZE,
     APP_SPECIALIZE,
     SERVER_SPECIALIZE,
@@ -57,7 +59,6 @@ struct HookContext {
     void unload_zygisk();
 
     DCL_PRE_POST(fork)
-
     void run_modules_pre(const vector<int> &fds);
     void run_modules_post();
     DCL_PRE_POST(nativeForkAndSpecialize)
@@ -151,34 +152,36 @@ DCL_HOOK_FUNC(int, fork) {
     return (g_ctx && g_ctx->pid >= 0) ? g_ctx->pid : old_fork();
 }
 
-// Unmount app_process overlays in the process's private mount namespace
+// Unmount stuffs in the process's private mount namespace
 DCL_HOOK_FUNC(int, unshare, int flags) {
     int res = old_unshare(flags);
     if (g_ctx && (flags & CLONE_NEWNS) != 0 && res == 0) {
-        umount2("/system/bin/app_process64", MNT_DETACH);
-        umount2("/system/bin/app_process32", MNT_DETACH);
+        if (g_ctx->state[DO_HIDE]) {
+            remote_request_hide();
+        }
+        if (g_ctx->state[DO_UNMOUNT]) {
+            revert_unmount();
+        } else {
+            umount2("/system/bin/app_process64", MNT_DETACH);
+            umount2("/system/bin/app_process32", MNT_DETACH);
+        }
     }
     return res;
-}
-
-// This is the latest point where we can still connect to the magiskd main socket
-DCL_HOOK_FUNC(int, selinux_android_setcontext,
-        uid_t uid, int isSystemServer, const char *seinfo, const char *pkgname) {
-    if (g_ctx && g_ctx->state[HIDE_FLAG]) {
-        remote_request_hide();
-        ZLOGD("process successfully hidden\n");
-    }
-    // Last point before process secontext changes
-    if (g_ctx) {
-        g_ctx->state[CAN_DLCLOSE] = unhook_functions();
-    }
-    return old_selinux_android_setcontext(uid, isSystemServer, seinfo, pkgname);
 }
 
 // A place to clean things up before zygote evaluates fd table
 DCL_HOOK_FUNC(void, android_log_close) {
     HookContext::close_fds();
     old_android_log_close();
+}
+
+// Last point before process secontext changes
+DCL_HOOK_FUNC(int, selinux_android_setcontext,
+        uid_t uid, int isSystemServer, const char *seinfo, const char *pkgname) {
+    if (g_ctx) {
+        g_ctx->state[CAN_DLCLOSE] = unhook_functions();
+    }
+    return old_selinux_android_setcontext(uid, isSystemServer, seinfo, pkgname);
 }
 
 // -----------------------------------------------------------------
@@ -347,6 +350,9 @@ void ZygiskModule::setOption(zygisk::Option opt) {
     if (g_ctx == nullptr)
         return;
     switch (opt) {
+    case zygisk::FORCE_DENYLIST_UNMOUNT:
+        g_ctx->state[DO_UNMOUNT] = true;
+        break;
     case zygisk::DLCLOSE_MODULE_LIBRARY:
         unload = true;
         break;
@@ -448,15 +454,17 @@ void HookContext::nativeSpecializeAppProcess_pre() {
         ZLOGV("pre  specialize [%s]\n", process);
     }
 
-    // TODO: Handle MOUNT_EXTERNAL_NONE on older platforms
-    if (args->mount_external != 0 && remote_check_hide(args->uid, process)) {
-        g_ctx->state[HIDE_FLAG] = true;
-        ZLOGI("[%s] is on the hidelist\n", process);
+    if (remote_check_hide(args->uid, process)) {
+        ZLOGI("[%s] is on the hide list\n", process);
+        state[DO_HIDE] = true;
     }
 
     vector<int> module_fds;
     int fd = remote_get_info(args->uid, process, &flags, module_fds);
-    if (fd >= 0) {
+    if ((flags & UNMOUNT_MASK) == UNMOUNT_MASK) {
+        ZLOGI("[%s] is on the denylist\n", process);
+        state[DO_UNMOUNT] = true;
+    } else if (fd >= 0) {
         run_modules_pre(module_fds);
     }
     write_int(fd, 0);
@@ -550,7 +558,7 @@ void HookContext::fork_pre() {
     g_ctx = this;
     sigmask(SIG_BLOCK, SIGCHLD);
     pid = old_fork();
-    if (g_ctx->state[HIDE_FLAG]) {
+    if (g_ctx->state[DO_HIDE]) {
         unload_zygisk();
     }
 }

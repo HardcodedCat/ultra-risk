@@ -5,7 +5,7 @@
 #include <selinux.hpp>
 #include <resetprop.hpp>
 
-#include "magiskhide.hpp"
+#include "hide.hpp"
 
 using namespace std;
 

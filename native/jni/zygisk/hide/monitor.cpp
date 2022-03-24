@@ -12,7 +12,7 @@
 
 #include <utils.hpp>
 
-#include "magiskhide.hpp"
+#include "hide.hpp"
 
 using namespace std;
 
@@ -141,7 +141,7 @@ static void inotify_event(int) {
     auto event = reinterpret_cast<struct inotify_event *>(buf);
     read(inotify_fd, buf, sizeof(buf));
     if ((event->mask & IN_CLOSE_WRITE) && event->name == "packages.xml"sv)
-        update_uid_map();
+        return;
     check_zygote();
 }
 
@@ -164,13 +164,9 @@ static void term_thread(int) {
     pthread_exit(nullptr);
 }
 
-/******************
- * Ptrace Madness
- ******************/
-
-// Ptrace is super tricky, preserve all excessive logging in code
-// but disable when actually building for usage (you won't want
-// your logcat spammed with new thread events from all apps)
+/*********
+ * Ptrace
+ *********/
 
 //#define PTRACE_LOG(fmt, args...) LOGD("PID=[%d] " fmt, pid, ##args)
 #define PTRACE_LOG(...)

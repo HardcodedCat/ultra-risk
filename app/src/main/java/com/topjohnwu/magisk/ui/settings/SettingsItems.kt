@@ -212,28 +212,89 @@ object Zygisk : BaseSettingsItem.Toggle() {
         get() = Config.zygisk
         set(value) {
             Config.zygisk = value
-            Config.magiskHide = value
+            DenyList.isEnabled = value
+            MagiskHide.isEnabled = value
             notifyPropertyChanged(BR.description)
+            DenyList.notifyPropertyChanged(BR.description)
+            MagiskHide.notifyPropertyChanged(BR.description)
         }
     val mismatch get() = value != Info.isZygiskEnabled
 }
 
-object MagiskHide : BaseSettingsItem.Toggle() {
-    override val title = R.string.magiskhide.asText()
-    override val description = R.string.settings_magiskhide_summary.asText()
-    override var value = Config.magiskHide
+object DenyList : BaseSettingsItem.Toggle() {
+    override val title = R.string.settings_denylist_title.asText()
+    override val description get() =
+        if (isEnabled) {
+            if (Zygisk.mismatch)
+                R.string.reboot_apply_change.asText()
+            else
+                R.string.settings_denylist_summary.asText()
+        } else {
+            R.string.settings_denylist_error.asText(R.string.zygisk.asText())
+        }
+
+    override var value = Config.denyList
         set(value) {
             field = value
             val cmd = if (value) "enable" else "disable"
-            Shell.su("magiskhide $cmd").submit { cb ->
-                if (cb.isSuccess) {
-                    Config.magiskHide = value
+            Shell.su("magisk --denylist $cmd").submit { result ->
+                if (result.isSuccess) {
+                    Config.denyList = value
                 } else {
                     field = !value
                     notifyPropertyChanged(BR.checked)
                 }
             }
         }
+
+    override fun refresh() {
+        isEnabled = Zygisk.value
+    }
+}
+
+object DenyListConfig : BaseSettingsItem.Blank() {
+    override val title = R.string.settings_denylist_config_title.asText()
+    override val description = R.string.settings_denylist_config_summary.asText()
+    override fun refresh() {
+        isEnabled = Zygisk.value
+    }
+}
+
+object MagiskHide : BaseSettingsItem.Toggle() {
+    override val title = R.string.magiskhide.asText()
+    override val description get() =
+        if (isEnabled) {
+            if (Zygisk.mismatch)
+                R.string.reboot_apply_change.asText()
+            else
+                R.string.settings_magiskhide_summary.asText()
+        } else {
+            R.string.settings_magiskhide_error.asText(R.string.zygisk.asText())
+        }
+
+    override var value = Config.magiskHide
+        set(value) {
+            field = value
+            val cmd = if (value) "enable" else "disable"
+            Shell.su("magiskhide $cmd").submit { result ->
+                if (result.isSuccess) {
+                    Config.magiskHide = value
+                } else {
+                    field = !value
+                    notifyPropertyChanged(BR.checked)
+                }
+                HideListConfig.isEnabled = value
+            }
+        }
+
+    override fun refresh() {
+        isEnabled = Zygisk.value
+    }
+}
+
+object HideListConfig : BaseSettingsItem.Blank() {
+    override val title = R.string.settings_magiskhide_config_title.asText()
+    override val description = R.string.settings_magiskhide_config_summary.asText()
     override fun refresh() {
         isEnabled = Zygisk.value
     }

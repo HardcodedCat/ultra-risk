@@ -305,16 +305,16 @@ void post_fs_data(int client) {
 
     if (getprop("persist.sys.safemode", true) == "1" || check_key_combo()) {
         safe_mode = true;
-        // Disable all modules and magiskhide so next boot will be clean
+        // Disable all modules, denylist and magiskhide so next boot will be clean
         disable_modules();
+        disable_deny();
         stop_magiskhide();
     } else {
         exec_common_scripts("post-fs-data");
         db_settings dbs;
         get_db_settings(dbs, ZYGISK_CONFIG);
-        if (dbs[ZYGISK_CONFIG]) {
-            zygisk_enabled = true;
-        }
+        zygisk_enabled = dbs[ZYGISK_CONFIG];
+        initialize_denylist();
         auto_start_magiskhide(false);
         handle_modules();
     }

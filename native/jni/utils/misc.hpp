@@ -111,8 +111,6 @@ int parse_int(std::string_view s);
 
 using thread_entry = void *(*)(void *);
 int new_daemon_thread(thread_entry entry, void *arg = nullptr);
-int new_daemon_thread(void(*entry)());
-int new_daemon_thread(std::function<void()> &&entry);
 
 static inline bool str_contains(std::string_view s, std::string_view ss) {
     return s.find(ss) != std::string::npos;

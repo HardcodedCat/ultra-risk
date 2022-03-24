@@ -133,6 +133,15 @@ template <class T> void entry_impl(api_table *, JNIEnv *);
 
 // These values are used in Api::setOption(Option)
 enum Option : int {
+    // Force Magisk's denylist unmount routines to run on this process.
+    //
+    // Setting this option only makes sense in preAppSpecialize.
+    // The actual unmounting happens during app process specialization.
+    //
+    // Set this option to force all Magisk and modules' files to be unmounted from the
+    // mount namespace of the process, regardless of the denylist enforcement status.
+    FORCE_DENYLIST_UNMOUNT = 0,
+
     // When this option is set, your module's library will be dlclose-ed after post[XXX]Specialize.
     // Be aware that after dlclose-ing your module, all of your code will be unmapped from memory.
     // YOU MUST NOT ENABLE THIS OPTION AFTER HOOKING ANY FUNCTIONS IN THE PROCESS.
@@ -143,6 +152,9 @@ enum Option : int {
 enum StateFlag : uint32_t {
     // The user has granted root access to the current process
     PROCESS_GRANTED_ROOT = (1u << 0),
+
+    // The current process was added on the denylist
+    PROCESS_ON_DENYLIST = (1u << 1),
 };
 
 // All API functions will stop working after post[XXX]Specialize as Zygisk will be unloaded

@@ -26,6 +26,7 @@ enum : int {
     POST_FS_DATA,
     LATE_START,
     BOOT_COMPLETE,
+    DENYLIST,
     MAGISKHIDE,
     SQLITE_CMD,
     REMOVE_MODULES,
@@ -40,15 +41,6 @@ enum : int {
     DAEMON_SUCCESS = 0,
     ROOT_REQUIRED,
     DAEMON_LAST
-};
-
-// Daemon state
-enum : int {
-    STATE_NONE,
-    STATE_POST_FS_DATA,
-    STATE_POST_FS_DATA_DONE,
-    STATE_LATE_START_DONE,
-    STATE_BOOT_COMPLETE
 };
 
 struct module_info {
@@ -84,14 +76,16 @@ void android_logging();
 void post_fs_data(int client);
 void late_start(int client);
 void boot_complete(int client);
+void denylist_handler(int client, const sock_cred *cred);
 void magiskhide_handler(int client, const sock_cred *cred);
 void su_daemon_handler(int client, const sock_cred *cred);
 void zygisk_handler(int client, const sock_cred *cred);
 
+// Denylist
+void initialize_denylist();
+int disable_deny();
+int denylist_cli(int argc, char **argv);
+
 // MagiskHide
 void auto_start_magiskhide(bool late_props);
 int stop_magiskhide();
-
-// For injected process to access daemon
-int remote_check_hide(int uid, const char *process);
-void remote_request_hide();

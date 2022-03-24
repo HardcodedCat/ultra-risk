@@ -8,6 +8,7 @@
 #include <string_view>
 #include <functional>
 #include <map>
+#include <atomic>
 
 #include <daemon.hpp>
 
@@ -26,14 +27,9 @@ extern pthread_t monitor_thread;
 [[noreturn]] void proc_monitor();
 [[noreturn]] void test_proc_monitor();
 
-// Response whether target process should be hidden
-int check_uid_map(int client);
-
 // Utility functions
 void crawl_procfs(const std::function<bool (int)> &fn);
 void crawl_procfs(DIR *dir, const std::function<bool (int)> &fn);
-bool hide_enabled();
-void update_uid_map();
 bool is_hide_target(int uid, std::string_view process, int max_len = 1024);
 
 // Hide policies
@@ -42,7 +38,8 @@ void hide_unmount(int pid = -1);
 void hide_sensitive_props();
 void hide_late_sensitive_props();
 
-extern int cached_manager_app_id;
+extern std::atomic<bool> hide_enabled;
+extern std::atomic<int> cached_manager_app_id;
 
 enum {
     LAUNCH_MAGISKHIDE,
@@ -51,15 +48,13 @@ enum {
     RM_HIDELIST,
     LS_HIDELIST,
     HIDE_STATUS,
-    REMOTE_CHECK_HIDE,
-    REMOTE_DO_HIDE
 };
 
 enum {
-    HIDE_IS_ENABLED = DAEMON_LAST,
+    HIDE_IS_ENABLED = DAEMON_LAST + 1,
     HIDE_NOT_ENABLED,
     HIDE_ITEM_EXIST,
     HIDE_ITEM_NOT_EXIST,
     HIDE_NO_NS,
-    HIDE_INVALID_PKG
+    HIDE_INVALID_PKG,
 };

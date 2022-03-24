@@ -131,6 +131,7 @@ class MainActivity : BaseMainActivity<ActivityMainMd2Binding>() {
     private fun getScreen(name: String?): NavDirections? {
         return when (name) {
             Const.Nav.SUPERUSER -> MainDirections.actionSuperuserFragment()
+            Const.Nav.DENY -> MainDirections.actionDenyFragment()
             Const.Nav.HIDE -> MainDirections.actionHideFragment()
             Const.Nav.MODULES -> MainDirections.actionModuleFragment()
             Const.Nav.SETTINGS -> HomeFragmentDirections.actionHomeFragmentToSettingsFragment()

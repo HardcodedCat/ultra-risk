@@ -20,6 +20,11 @@ sealed class TappableHeadlineItem : DiffRvItem<TappableHeadlineItem>() {
 
     // --- objects
 
+    object Deny : TappableHeadlineItem() {
+        override val title = R.string.denylist
+        override val icon = R.drawable.ic_hide_md2
+    }
+
     object Hide : TappableHeadlineItem() {
         override val title = R.string.magiskhide
         override val icon = R.drawable.ic_hide_md2

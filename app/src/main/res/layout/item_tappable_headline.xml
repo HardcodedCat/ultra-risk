@@ -48,6 +48,20 @@
                 app:layout_constraintEnd_toStartOf="@+id/headline_icon_pointer"
                 app:layout_constraintStart_toEndOf="@+id/tappable_icon"
                 app:layout_constraintTop_toTopOf="parent"
+                tools:text="@string/denylist" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:requiresFadingEdge="horizontal"
+                android:singleLine="true"
+                android:text="@{item.title}"
+                android:textAppearance="@style/AppearanceFoundation.Body"
+                android:textStyle="bold"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/headline_icon_pointer"
+                app:layout_constraintStart_toEndOf="@+id/tappable_icon"
+                app:layout_constraintTop_toTopOf="parent"
                 tools:text="@string/magiskhide" />
 
             <ImageView

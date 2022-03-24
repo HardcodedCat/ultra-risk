@@ -10,8 +10,8 @@
 
 #include "zygisk.hpp"
 #include "module.hpp"
-
-#include "../magiskhide/magiskhide.hpp"
+#include "deny/deny.hpp"
+#include "hide/hide.hpp"
 
 using namespace std;
 
@@ -168,6 +168,39 @@ static int zygisk_log(int prio, const char *fmt, va_list ap) {
     return ret;
 }
 
+bool remote_check_hide(int uid, const char *process) {
+    if (int fd = connect_daemon(); fd >= 0) {
+        write_int(fd, ZYGISK_REQUEST);
+        write_int(fd, ZYGISK_HIDELIST);
+
+        int ret = -1;
+        if (read_int(fd) == 0) {
+            write_int(fd, uid);
+            write_string(fd, process);
+            ret = read_int(fd);
+        }
+        close(fd);
+        return ret >= 0 && ret;
+    }
+    return false;
+}
+
+int remote_request_hide() {
+    if (int fd = connect_daemon(); fd >= 0) {
+        write_int(fd, ZYGISK_REQUEST);
+        write_int(fd, ZYGISK_UNMOUNT);
+        int ret = read_int(fd);
+        close(fd);
+        return ret;
+    }
+    return DAEMON_ERROR;
+}
+
+static inline bool should_load_modules(uint32_t flags) {
+    return (flags & UNMOUNT_MASK) != UNMOUNT_MASK &&
+           (flags & PROCESS_IS_MAGISK_APP) != PROCESS_IS_MAGISK_APP;
+}
+
 int remote_get_info(int uid, const char *process, uint32_t *flags, vector<int> &fds) {
     if (int fd = connect_daemon(); fd >= 0) {
         write_int(fd, ZYGISK_REQUEST);
@@ -176,7 +209,9 @@ int remote_get_info(int uid, const char *process, uint32_t *flags, vector<int> &
         write_int(fd, uid);
         write_string(fd, process);
         xxread(fd, flags, sizeof(*flags));
-        fds = recv_fds(fd);
+        if (should_load_modules(*flags)) {
+            fds = recv_fds(fd);
+        }
         return fd;
     }
     return -1;
@@ -311,8 +346,7 @@ static void magiskd_passthrough(int client) {
     send_fd(client, is_64_bit ? app_process_64 : app_process_32);
 }
 
-int cached_manager_app_id = -1;
-static time_t last_modified = 0;
+atomic<int> cached_manager_app_id = -1;
 
 extern bool uid_granted_root(int uid);
 static void get_process_info(int client, const sock_cred *cred) {
@@ -324,45 +358,37 @@ static void get_process_info(int client, const sock_cred *cred) {
     // This function is called on every single zygote process specialization,
     // so performance is critical. get_manager_app_id() is expensive as it goes
     // through a SQLite query and potentially multiple filesystem stats, so we
-    // really want to cache the app ID value. Check the last modify timestamp of
-    // packages.xml and only re-fetch the manager app ID if something changed since
-    // we last checked. Granularity in seconds is good enough.
-    // If hide is enabled, inotify will invalidate the app ID cache for us.
-    // In this case, we can skip the timestamp check all together.
+    // really want to cache the app ID value. inotify will invalidate the app ID
+    // cache for us.
 
-    if (uid != 1000) {
-        int manager_app_id = cached_manager_app_id;
+    int manager_app_id = cached_manager_app_id;
 
-        // Hide not enabled, check packages.xml timestamp
-        if (!hide_enabled() && manager_app_id > 0) {
-            struct stat st{};
-            stat("/data/system/packages.xml", &st);
-            if (st.st_atim.tv_sec > last_modified) {
-                manager_app_id = -1;
-                last_modified = st.st_atim.tv_sec;
-            }
-        }
+    if (manager_app_id < 0) {
+        manager_app_id = get_manager_app_id();
+        cached_manager_app_id = manager_app_id;
+    }
 
-        if (manager_app_id < 0) {
-            manager_app_id = get_manager_app_id();
-            cached_manager_app_id = manager_app_id;
-        }
-
-        if (to_app_id(uid) == manager_app_id) {
-            flags |= PROCESS_IS_MAGISK_APP;
-        }
-
-        if (uid_granted_root(uid)) {
-            flags |= PROCESS_GRANTED_ROOT;
-        }
+    if (to_app_id(uid) == manager_app_id) {
+        flags |= PROCESS_IS_MAGISK_APP;
+    }
+    if (denylist_enforced) {
+        flags |= DENYLIST_ENFORCING;
+    }
+    if (is_deny_target(uid, process)) {
+        flags |= PROCESS_ON_DENYLIST;
+    }
+    if (uid_granted_root(uid)) {
+        flags |= PROCESS_GRANTED_ROOT;
     }
 
     xwrite(client, &flags, sizeof(flags));
 
-    char buf[256];
-    get_exe(cred->pid, buf, sizeof(buf));
-    vector<int> fds = get_module_fds(str_ends(buf, "64"));
-    send_fds(client, fds.data(), fds.size());
+    if (should_load_modules(flags)) {
+        char buf[256];
+        get_exe(cred->pid, buf, sizeof(buf));
+        vector<int> fds = get_module_fds(str_ends(buf, "64"));
+        send_fds(client, fds.data(), fds.size());
+    }
 
     // The following will only happen for system_server
     int slots = read_int(client);
@@ -405,6 +431,18 @@ static void get_moddir(int client) {
     close(dfd);
 }
 
+// Response whether target process should be hidden
+static void check_uid_map(int client) {
+    if (!hide_enabled) {
+        write_int(client, HIDE_NOT_ENABLED);
+        return;
+    }
+    write_int(client, 0);
+    int uid = read_int(client);
+    string process = read_string(client);
+    write_int(client, is_hide_target(uid, process));
+}
+
 void zygisk_handler(int client, const sock_cred *cred) {
     int code = read_int(client);
     char buf[256];
@@ -428,6 +466,15 @@ void zygisk_handler(int client, const sock_cred *cred) {
     case ZYGISK_GET_MODDIR:
         get_moddir(client);
         break;
+    case ZYGISK_HIDELIST:
+        check_uid_map(client);
+        break;
+    case ZYGISK_UNMOUNT:
+        kill(cred->pid, SIGSTOP);
+        write_int(client, 0);
+        hide_daemon(cred->pid);
+        close(client);
+        return;
     }
     close(client);
 }

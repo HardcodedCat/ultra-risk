@@ -37,6 +37,8 @@ class SuperuserViewModel(
 
     val adapter = adapterOf<AnyDiffRvItem>()
     val items = MergeObservableList<AnyDiffRvItem>().apply {
+        if (Config.denyList)
+            insertItem(TappableHeadlineItem.Deny)
         if (Config.magiskHide)
             insertItem(TappableHeadlineItem.Hide)
     }.insertList(itemsHelpers)
@@ -74,9 +76,13 @@ class SuperuserViewModel(
     // ---
 
     override fun onItemPressed(item: TappableHeadlineItem) = when (item) {
+        TappableHeadlineItem.Deny -> denyPressed()
         TappableHeadlineItem.Hide -> hidePressed()
         else -> Unit
     }
+
+    private fun denyPressed() =
+        SuperuserFragmentDirections.actionSuperuserFragmentToDenyFragment().navigate()
 
     private fun hidePressed() =
         SuperuserFragmentDirections.actionSuperuserFragmentToHideFragment().navigate()

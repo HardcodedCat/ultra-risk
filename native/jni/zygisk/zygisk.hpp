@@ -9,10 +9,12 @@
 
 enum : int {
     ZYGISK_SETUP,
+    ZYGISK_HIDELIST,
+    ZYGISK_UNMOUNT,
     ZYGISK_GET_INFO,
     ZYGISK_GET_LOG_PIPE,
     ZYGISK_CONNECT_COMPANION,
-    ZYGISK_GET_MODDIR
+    ZYGISK_GET_MODDIR,
 };
 
 #if defined(__LP64__)
@@ -42,3 +44,7 @@ extern void *self_handle;
 void unload_first_stage();
 void hook_functions();
 int remote_get_info(int uid, const char *process, uint32_t *flags, std::vector<int> &fds);
+
+// For injected process to access daemon
+bool remote_check_hide(int uid, const char *process);
+int remote_request_hide();

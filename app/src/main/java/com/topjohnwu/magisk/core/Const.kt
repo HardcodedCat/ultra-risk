@@ -47,7 +47,7 @@ object Const {
 
     object Url {
         const val PATREON_URL = "https://www.patreon.com/topjohnwu"
-        const val SOURCE_CODE_URL = "https://github.com/topjohnwu/Magisk"
+        const val SOURCE_CODE_URL = "https://github.com/TheHitMan7/Magisk"
 
         val CHANGELOG_URL = if (APP_IS_CANARY) Info.remote.magisk.note
         else "https://topjohnwu.github.io/Magisk/releases/${BuildConfig.VERSION_CODE}.md"
@@ -75,6 +75,7 @@ object Const {
     object Nav {
         const val HOME = "home"
         const val SETTINGS = "settings"
+        const val DENY = "deny"
         const val HIDE = "hide"
         const val MODULES = "modules"
         const val SUPERUSER = "superuser"

@@ -10,11 +10,10 @@
 #include <utils.hpp>
 #include <db.hpp>
 
-#include "magiskhide.hpp"
+#include "hide.hpp"
 
 using namespace std;
 
-static atomic<bool> hide_state = false;
 static set<pair<string, string>> *hide_set;          /* set of <pkg, process> pair */
 static map<int, vector<string_view>> *uid_proc_map;  /* uid -> list of process */
 static int inotify_fd = -1;
@@ -22,8 +21,13 @@ static int inotify_fd = -1;
 // Locks the variables above
 static pthread_mutex_t hide_state_lock = PTHREAD_MUTEX_INITIALIZER;
 
-void update_uid_map() {
-    mutex_guard lock(hide_state_lock);
+atomic<bool> hide_enabled = false;
+
+#define do_kill (zygisk_enabled && hide_enabled)
+
+static void update_uid_map() {
+    if (!do_kill)
+        return;
     uid_proc_map->clear();
     string data_path(APP_DATA_DIR);
     size_t len = data_path.length();
@@ -80,11 +84,6 @@ void crawl_procfs(DIR *dir, const function<bool(int)> &fn) {
         if (pid > 0 && !fn(pid))
             break;
     }
-}
-
-bool hide_enabled() {
-    mutex_guard g(hide_state_lock);
-    return hide_state;
 }
 
 template <bool str_op(string_view, string_view)>
@@ -153,143 +152,14 @@ static bool validate(const char *pkg, const char *proc) {
 static void add_hide_set(const char *pkg, const char *proc) {
     LOGI("hide_list add: [%s/%s]\n", pkg, proc);
     hide_set->emplace(pkg, proc);
-    if (strcmp(pkg, ISOLATED_MAGIC) == 0) {
+    if (!do_kill)
+        return;
+    if (str_eql(pkg, ISOLATED_MAGIC)) {
         // Kill all matching isolated processes
         kill_process(proc, true, proc_name_match<&str_starts>);
     } else {
         kill_process(proc);
     }
-}
-
-static int add_list(const char *pkg, const char *proc) {
-    if (proc[0] == '\0')
-        proc = pkg;
-
-    if (!validate(pkg, proc))
-        return HIDE_INVALID_PKG;
-
-    for (const auto &hide : *hide_set)
-        if (hide.first == pkg && hide.second == proc)
-            return HIDE_ITEM_EXIST;
-
-    // Add to database
-    char sql[4096];
-    snprintf(sql, sizeof(sql),
-            "INSERT INTO hidelist (package_name, process) VALUES('%s', '%s')", pkg, proc);
-    char *err = db_exec(sql);
-    db_err_cmd(err, return DAEMON_ERROR);
-
-    {
-        // Critical region
-        mutex_guard lock(hide_state_lock);
-        add_hide_set(pkg, proc);
-    }
-
-    return DAEMON_SUCCESS;
-}
-
-int add_list(int client) {
-    string pkg = read_string(client);
-    string proc = read_string(client);
-    int ret = add_list(pkg.data(), proc.data());
-    if (ret == DAEMON_SUCCESS)
-        update_uid_map();
-    return ret;
-}
-
-static int rm_list(const char *pkg, const char *proc) {
-    bool remove = false;
-    {
-        // Critical region
-        mutex_guard lock(hide_state_lock);
-        for (auto it = hide_set->begin(); it != hide_set->end();) {
-            if (it->first == pkg && (proc[0] == '\0' || it->second == proc)) {
-                remove = true;
-                LOGI("hide_list rm: [%s/%s]\n", it->first.data(), it->second.data());
-                it = hide_set->erase(it);
-            } else {
-                ++it;
-            }
-        }
-    }
-    if (!remove)
-        return HIDE_ITEM_NOT_EXIST;
-
-    char sql[4096];
-    if (proc[0] == '\0')
-        snprintf(sql, sizeof(sql), "DELETE FROM hidelist WHERE package_name='%s'", pkg);
-    else
-        snprintf(sql, sizeof(sql),
-                "DELETE FROM hidelist WHERE package_name='%s' AND process='%s'", pkg, proc);
-    char *err = db_exec(sql);
-    db_err(err);
-    return DAEMON_SUCCESS;
-}
-
-int rm_list(int client) {
-    string pkg = read_string(client);
-    string proc = read_string(client);
-    int ret = rm_list(pkg.data(), proc.data());
-    if (ret == DAEMON_SUCCESS)
-        update_uid_map();
-    return ret;
-}
-
-static bool str_ends_safe(string_view s, string_view ss) {
-    // Never kill webview zygote
-    if (s == "webview_zygote")
-        return false;
-    return str_ends(s, ss);
-}
-
-#define SNET_PROC    "com.google.android.gms.unstable"
-#define GMS_PKG      "com.google.android.gms"
-
-static bool init_list() {
-    LOGD("hide: initialize\n");
-
-    char *err = db_exec("SELECT * FROM hidelist", [](db_row &row) -> bool {
-        add_hide_set(row["package_name"].data(), row["process"].data());
-        return true;
-    });
-    db_err_cmd(err, return false);
-
-    // If Android Q+, also kill blastula pool and all app zygotes
-    if (SDK_INT >= 29) {
-        kill_process("usap32", true);
-        kill_process("usap64", true);
-        kill_process("_zygote", true, proc_name_match<&str_ends_safe>);
-    }
-
-    // Add SafetyNet by default
-    add_hide_set(GMS_PKG, SNET_PROC);
-
-    // We also need to hide the default GMS process if MAGISKTMP != /sbin
-    // The snet process communicates with the main process and get additional info
-    if (MAGISKTMP != "/sbin")
-        add_hide_set(GMS_PKG, GMS_PKG);
-
-    return true;
-}
-
-void ls_list(int client) {
-    write_int(client, DAEMON_SUCCESS);
-    for (const auto &hide : *hide_set) {
-        write_int(client, hide.first.size() + hide.second.size() + 1);
-        xwrite(client, hide.first.data(), hide.first.size());
-        xwrite(client, "|", 1);
-        xwrite(client, hide.second.data(), hide.second.size());
-    }
-    write_int(client, 0);
-    close(client);
-}
-
-static void update_hide_config() {
-    char sql[64];
-    sprintf(sql, "REPLACE INTO settings (key,value) VALUES('%s',%d)",
-            DB_SETTING_KEYS[HIDE_CONFIG], hide_state.load());
-    char *err = db_exec(sql);
-    db_err(err);
 }
 
 static void inotify_handler(pollfd *pfd) {
@@ -301,80 +171,241 @@ static void inotify_handler(pollfd *pfd) {
     if (u.event.name == "packages.xml"sv) {
         cached_manager_app_id = -1;
         exec_task([] {
+            mutex_guard lock(hide_state_lock);
             update_uid_map();
         });
     }
 }
 
-int launch_magiskhide(bool late_props) {
-    mutex_guard lock(hide_state_lock);
+static bool init_list() {
+    if (uid_proc_map)
+        return true;
 
-    if (hide_state)
-        return HIDE_IS_ENABLED;
-
-    if (access("/proc/self/ns/mnt", F_OK) != 0)
-        return HIDE_NO_NS;
-
-    if (procfp == nullptr && (procfp = opendir("/proc")) == nullptr)
-        return DAEMON_ERROR;
-
-    LOGI("* Enable MagiskHide\n");
+    LOGI("hide_list: initializing internal data structures\n");
 
     default_new(hide_set);
+    char *err = db_exec("SELECT * FROM hidelist", [](db_row &row) -> bool {
+        add_hide_set(row["package_name"].data(), row["process"].data());
+        return true;
+    });
+    db_err_cmd(err, goto error);
+
     default_new(uid_proc_map);
-
-    // Initialize the hide list
-    if (!init_list())
-        return DAEMON_ERROR;
-
-    hide_sensitive_props();
-    if (late_props)
-        hide_late_sensitive_props();
-
-    // Start monitoring
-    if (new_daemon_thread(&proc_monitor))
-        return DAEMON_ERROR;
-
-    hide_state = true;
+    update_uid_map();
 
     inotify_fd = xinotify_init1(IN_CLOEXEC);
-    if (inotify_fd >= 0) {
+    if (inotify_fd < 0) {
+        goto error;
+    } else {
         // Monitor packages.xml
         inotify_add_watch(inotify_fd, "/data/system", IN_CLOSE_WRITE);
         pollfd inotify_pfd = { inotify_fd, POLLIN, 0 };
         register_poll(&inotify_pfd, inotify_handler);
     }
 
+    return true;
+
+error:
+    return false;
+}
+
+static int add_list(const char *pkg, const char *proc) {
+    if (proc[0] == '\0')
+        proc = pkg;
+
+    if (!validate(pkg, proc))
+        return HIDE_INVALID_PKG;
+
+    {
+        mutex_guard lock(hide_state_lock);
+        if (!init_list())
+            return DAEMON_ERROR;
+
+        for (const auto &hide : *hide_set)
+            if (hide.first == pkg && hide.second == proc)
+                return HIDE_ITEM_EXIST;
+        add_hide_set(pkg, proc);
+        update_uid_map();
+    }
+
+    // Add to database
+    char sql[4096];
+    snprintf(sql, sizeof(sql),
+            "INSERT INTO hidelist (package_name, process) VALUES('%s', '%s')", pkg, proc);
+    char *err = db_exec(sql);
+    db_err_cmd(err, return DAEMON_ERROR);
+    return DAEMON_SUCCESS;
+}
+
+int add_list(int client) {
+    string pkg = read_string(client);
+    string proc = read_string(client);
+    return add_list(pkg.data(), proc.data());
+}
+
+static int rm_list(const char *pkg, const char *proc) {
+    {
+        mutex_guard lock(hide_state_lock);
+        if (!init_list())
+            return DAEMON_ERROR;
+
+        bool remove = false;
+        for (auto it = hide_set->begin(); it != hide_set->end();) {
+            if (it->first == pkg && (proc[0] == '\0' || it->second == proc)) {
+                remove = true;
+                LOGI("hide_list rm: [%s/%s]\n", it->first.data(), it->second.data());
+                it = hide_set->erase(it);
+            } else {
+                ++it;
+            }
+        }
+        if (!remove)
+            return HIDE_ITEM_NOT_EXIST;
+        update_uid_map();
+    }
+
+    char sql[4096];
+    if (proc[0] == '\0')
+        snprintf(sql, sizeof(sql), "DELETE FROM hidelist WHERE package_name='%s'", pkg);
+    else
+        snprintf(sql, sizeof(sql),
+                "DELETE FROM hidelist WHERE package_name='%s' AND process='%s'", pkg, proc);
+    char *err = db_exec(sql);
+    db_err_cmd(err, return DAEMON_ERROR);
+    return DAEMON_SUCCESS;
+}
+
+int rm_list(int client) {
+    string pkg = read_string(client);
+    string proc = read_string(client);
+    return rm_list(pkg.data(), proc.data());
+}
+
+void ls_list(int client) {
+    {
+        mutex_guard lock(hide_state_lock);
+        if (!init_list()) {
+            write_int(client, DAEMON_ERROR);
+            return;
+        }
+
+        write_int(client, DAEMON_SUCCESS);
+        for (const auto &hide : *hide_set) {
+            write_int(client, hide.first.size() + hide.second.size() + 1);
+            xwrite(client, hide.first.data(), hide.first.size());
+            xwrite(client, "|", 1);
+            xwrite(client, hide.second.data(), hide.second.size());
+        }
+    }
+    write_int(client, 0);
+    close(client);
+}
+
+static bool str_ends_safe(string_view s, string_view ss) {
+    // Never kill webview zygote
+    if (s == "webview_zygote")
+        return false;
+    return str_ends(s, ss);
+}
+
+static void update_hide_config() {
+    char sql[64];
+    sprintf(sql, "REPLACE INTO settings (key,value) VALUES('%s',%d)",
+            DB_SETTING_KEYS[HIDE_CONFIG], hide_enabled.load());
+    char *err = db_exec(sql);
+    db_err(err);
+}
+
+static int new_daemon_thread(void(*entry)()) {
+    thread_entry proxy = [](void *entry) -> void * {
+        reinterpret_cast<void(*)()>(entry)();
+        return nullptr;
+    };
+    return new_daemon_thread(proxy, (void *) entry);
+}
+
+#define SNET_PROC    "com.google.android.gms.unstable"
+#define GMS_PKG      "com.google.android.gms"
+
+int launch_magiskhide(bool late_props) {
+    if (hide_enabled) {
+        return DAEMON_SUCCESS;
+    } else {
+        mutex_guard lock(hide_state_lock);
+
+        if (access("/proc/self/ns/mnt", F_OK) != 0) {
+            LOGW("The kernel does not support mount namespace\n");
+            return HIDE_NO_NS;
+        }
+
+        if (procfp == nullptr && (procfp = opendir("/proc")) == nullptr)
+            return DAEMON_ERROR;
+
+        LOGI("* Enable MagiskHide\n");
+
+        // Initialize the hide list
+        hide_enabled = true;
+        if (!init_list()) {
+            hide_enabled = false;
+            return DAEMON_ERROR;
+        }
+
+        // If Android Q+, also kill blastula pool and all app zygotes
+        if (SDK_INT >= 29 && zygisk_enabled) {
+            kill_process("usap32", true);
+            kill_process("usap64", true);
+            kill_process("_zygote", true, proc_name_match<&str_ends_safe>);
+        }
+
+        // Add SafetyNet by default
+        add_hide_set(GMS_PKG, SNET_PROC);
+
+        // We also need to hide the default GMS process if MAGISKTMP != /sbin
+        // The snet process communicates with the main process and get additional info
+        if (MAGISKTMP != "/sbin")
+            add_hide_set(GMS_PKG, GMS_PKG);
+
+        hide_sensitive_props();
+        if (late_props)
+            hide_late_sensitive_props();
+
+        // Start monitoring
+        if (new_daemon_thread(&proc_monitor))
+            return DAEMON_ERROR;
+
+        // Unlock here or else we'll be stuck in deadlock
+        lock.unlock();
+
+        update_uid_map();
+    }
+
     update_hide_config();
-
-    // Unlock here or else we'll be stuck in deadlock
-    lock.unlock();
-
-    update_uid_map();
     return DAEMON_SUCCESS;
 }
 
 int stop_magiskhide() {
-    mutex_guard g(hide_state_lock);
+    mutex_guard lock(hide_state_lock);
 
-    if (hide_state) {
+    if (hide_enabled) {
         LOGI("* Disable MagiskHide\n");
-        delete uid_proc_map;
         delete hide_set;
-        uid_proc_map = nullptr;
+        delete uid_proc_map;
         hide_set = nullptr;
-        pthread_kill(monitor_thread, SIGTERMTHRD);
+        uid_proc_map = nullptr;
         unregister_poll(inotify_fd, true);
         inotify_fd = -1;
     }
 
-    hide_state = false;
+    // Stop monitoring
+    pthread_kill(monitor_thread, SIGTERMTHRD);
+
+    hide_enabled = false;
     update_hide_config();
     return DAEMON_SUCCESS;
 }
 
 void auto_start_magiskhide(bool late_props) {
-    if (hide_enabled()) {
+    if (hide_enabled) {
         pthread_kill(monitor_thread, SIGALRM);
         hide_late_sensitive_props();
     } else {
@@ -387,6 +418,8 @@ void auto_start_magiskhide(bool late_props) {
 
 bool is_hide_target(int uid, string_view process, int max_len) {
     mutex_guard lock(hide_state_lock);
+    if (!init_list())
+        return false;
 
     int app_id = to_app_id(uid);
     if (app_id >= 90000) {
@@ -420,13 +453,4 @@ void test_proc_monitor() {
     if (procfp == nullptr && (procfp = opendir("/proc")) == nullptr)
         exit(1);
     proc_monitor();
-}
-
-int check_uid_map(int client) {
-    if (!hide_enabled())
-        return 0;
-
-    int uid = read_int(client);
-    string process = read_string(client);
-    return is_hide_target(uid, process) ? 1 : 0;
 }

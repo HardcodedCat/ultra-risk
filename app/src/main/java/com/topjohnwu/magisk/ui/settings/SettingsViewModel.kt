@@ -70,7 +70,7 @@ class SettingsViewModel : BaseViewModel(), BaseSettingsItem.Handler {
                 Magisk
             ))
             if (Const.Version.atLeast_24_0()) {
-                list.addAll(listOf(Zygisk, MagiskHide, SystemlessHosts))
+                list.addAll(listOf(Zygisk, DenyList, DenyListConfig, MagiskHide, HideListConfig, SystemlessHosts))
             }
         }
 
@@ -103,6 +103,8 @@ class SettingsViewModel : BaseViewModel(), BaseSettingsItem.Handler {
             is DownloadPath -> withExternalRW(andThen)
             is Biometrics -> authenticate(andThen)
             is Theme -> SettingsFragmentDirections.actionSettingsFragmentToThemeFragment().navigate()
+            is DenyListConfig -> SettingsFragmentDirections.actionSettingsFragmentToDenyFragment().navigate()
+            is HideListConfig -> SettingsFragmentDirections.actionSettingsFragmentToHideFragment().navigate()
             is SystemlessHosts -> createHosts()
             is Restore -> RestoreAppDialog().publish()
             is AddShortcut -> AddHomeIconEvent().publish()

@@ -54,9 +54,12 @@ struct ServerSpecializeArgsImpl {
 
 enum : uint32_t {
     PROCESS_GRANTED_ROOT = zygisk::StateFlag::PROCESS_GRANTED_ROOT,
+    PROCESS_ON_DENYLIST = zygisk::StateFlag::PROCESS_ON_DENYLIST,
 
+    DENYLIST_ENFORCING = (1u << 30),
     PROCESS_IS_MAGISK_APP = (1u << 31),
 
+    UNMOUNT_MASK = (PROCESS_ON_DENYLIST | DENYLIST_ENFORCING),
     PRIVATE_MASK = (0x3u << 30)
 };
 
