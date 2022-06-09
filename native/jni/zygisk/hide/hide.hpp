@@ -30,6 +30,7 @@ extern pthread_t monitor_thread;
 // Utility functions
 void crawl_procfs(const std::function<bool (int)> &fn);
 void crawl_procfs(DIR *dir, const std::function<bool (int)> &fn);
+void update_uid_map();
 bool is_hide_target(int uid, std::string_view process, int max_len = 1024);
 
 // Hide policies

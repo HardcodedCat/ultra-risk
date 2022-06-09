@@ -86,8 +86,7 @@ void hide_daemon(int pid) {
     }
 }
 
-#define TMPFS_MNT(dir) (mentry->mnt_type == "tmpfs"sv && \
-strncmp(mentry->mnt_dir, "/" #dir, sizeof("/" #dir) - 1) == 0)
+#define TMPFS_MNT(dir) (mentry->mnt_type == "tmpfs"sv && str_starts(mentry->mnt_dir, "/" #dir))
 
 void hide_unmount(int pid) {
     if (pid > 0 && switch_mnt_ns(pid))

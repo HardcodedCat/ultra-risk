@@ -455,6 +455,8 @@ void HookContext::nativeSpecializeAppProcess_pre() {
     if (remote_check_hide(args->uid, process)) {
         ZLOGI("[%s] is on the hide list\n", process);
         state[DO_HIDE] = true;
+        // Handle MOUNT_EXTERNAL_NONE on older platforms
+        args->mount_external = 1;
     }
 
     vector<int> module_fds;
@@ -556,9 +558,6 @@ void HookContext::fork_pre() {
     g_ctx = this;
     sigmask(SIG_BLOCK, SIGCHLD);
     pid = old_fork();
-    if (g_ctx->state[DO_HIDE]) {
-        unload_zygisk();
-    }
 }
 
 // Unblock SIGCHLD in case the original method didn't

@@ -469,7 +469,7 @@ void zygisk_handler(int client, const sock_cred *cred) {
         write_int(client, 0);
         hide_daemon(cred->pid);
         close(client);
-        return;
+        break;
     }
     close(client);
 }

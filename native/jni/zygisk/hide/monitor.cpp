@@ -141,7 +141,7 @@ static void inotify_event(int) {
     auto event = reinterpret_cast<struct inotify_event *>(buf);
     read(inotify_fd, buf, sizeof(buf));
     if ((event->mask & IN_CLOSE_WRITE) && event->name == "packages.xml"sv)
-        return;
+        update_uid_map();
     check_zygote();
 }
 
@@ -225,7 +225,8 @@ static bool check_pid(int pid) {
     // Detach but the process should still remain stopped
     // The hide daemon will resume the process after hiding it
     LOGI("proc_monitor: [%s] PID=[%d] UID=[%d]\n", cmdline, pid, uid);
-    detach_pid(pid, SIGSTOP);
+    kill(pid, SIGSTOP);
+    detach_pid(pid);
     hide_daemon(pid);
     return true;
 
