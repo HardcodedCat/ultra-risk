@@ -156,7 +156,6 @@
     <string name="settings_denylist_config_title">Configure DenyList</string>
     <string name="settings_denylist_config_summary">Select the processes to be included on the denylist</string>
     <string name="settings_magiskhide_summary">Hide Magisk from various forms of detection</string>
-    <string name="settings_magiskhide_error">This feature requires %1$s to be enabled</string>
     <string name="settings_magiskhide_config_title">Configure HideList</string>
     <string name="settings_magiskhide_config_summary">Select the processes to be included on the hidelist</string>
     <string name="settings_hosts_title">Systemless hosts</string>

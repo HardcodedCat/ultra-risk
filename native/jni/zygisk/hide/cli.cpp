@@ -60,7 +60,7 @@ void magiskhide_handler(int client, const sock_cred *cred) {
         ls_list(client);
         return;
     case HIDE_STATUS:
-        res = (zygisk_enabled && hide_enabled) ? HIDE_IS_ENABLED : HIDE_NOT_ENABLED;
+        res = hide_enabled ? HIDE_IS_ENABLED : HIDE_NOT_ENABLED;
         break;
     }
 
