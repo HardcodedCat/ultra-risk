@@ -28,6 +28,11 @@ using namespace std;
 }
 
 void magiskhide_handler(int client, const sock_cred *cred) {
+    if (client < 0) {
+        hide_unmount();
+        return;
+    }
+
     int req = read_int(client);
     int res = DAEMON_ERROR;
 
@@ -51,13 +56,13 @@ void magiskhide_handler(int client, const sock_cred *cred) {
         res = stop_magiskhide();
         break;
     case ADD_HIDELIST:
-        res = add_list(client);
+        res = add_hide_list(client);
         break;
     case RM_HIDELIST:
-        res = rm_list(client);
+        res = rm_hide_list(client);
         break;
     case LS_HIDELIST:
-        ls_list(client);
+        ls_hide_list(client);
         return;
     case HIDE_STATUS:
         res = hide_enabled ? HIDE_IS_ENABLED : HIDE_NOT_ENABLED;

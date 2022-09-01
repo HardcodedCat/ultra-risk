@@ -41,8 +41,9 @@ class SuperuserViewModel(
             insertItem(TappableHeadlineItem.Deny)
         if (Config.magiskHide)
             insertItem(TappableHeadlineItem.Hide)
-    }.insertList(itemsHelpers)
-        .insertList(itemsPolicies)
+    }
+    .insertList(itemsHelpers)
+    .insertList(itemsPolicies)
     val itemBinding = itemBindingOf<AnyDiffRvItem> {
         it.bindExtra(BR.listener, this)
     }

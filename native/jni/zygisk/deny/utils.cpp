@@ -42,6 +42,8 @@ static void rescan_apps() {
         pkg_xml_ino = st.st_ino;
     }
 
+    LOGD("denylist: rescanning apps\n");
+
     app_id_to_pkgs.clear();
     cached_manager_app_id = -1;
 
@@ -193,7 +195,7 @@ static auto add_hide_set(const char *pkg, const char *proc) {
     return p;
 }
 
-static bool init_list() {
+static bool ensure_data() {
     if (pkg_to_procs_)
         return true;
 
@@ -215,7 +217,7 @@ error:
     return false;
 }
 
-static int add_lst(const char *pkg, const char *proc) {
+static int add_list(const char *pkg, const char *proc) {
     if (proc[0] == '\0')
         proc = pkg;
 
@@ -224,7 +226,7 @@ static int add_lst(const char *pkg, const char *proc) {
 
     {
         mutex_guard lock(data_lock);
-        if (!init_list())
+        if (!ensure_data())
             return DAEMON_ERROR;
         auto p = add_hide_set(pkg, proc);
         if (!p.second)
@@ -241,16 +243,16 @@ static int add_lst(const char *pkg, const char *proc) {
     return DAEMON_SUCCESS;
 }
 
-int add_lst(int client) {
+int add_list(int client) {
     string pkg = read_string(client);
     string proc = read_string(client);
-    return add_lst(pkg.data(), proc.data());
+    return add_list(pkg.data(), proc.data());
 }
 
-static int rm_lst(const char *pkg, const char *proc) {
+static int rm_list(const char *pkg, const char *proc) {
     {
         mutex_guard lock(data_lock);
-        if (!init_list())
+        if (!ensure_data())
             return DAEMON_ERROR;
 
         bool remove = false;
@@ -287,16 +289,16 @@ static int rm_lst(const char *pkg, const char *proc) {
     return DAEMON_SUCCESS;
 }
 
-int rm_lst(int client) {
+int rm_list(int client) {
     string pkg = read_string(client);
     string proc = read_string(client);
-    return rm_lst(pkg.data(), proc.data());
+    return rm_list(pkg.data(), proc.data());
 }
 
-void ls_lst(int client) {
+void ls_list(int client) {
     {
         mutex_guard lock(data_lock);
-        if (!init_list()) {
+        if (!ensure_data()) {
             write_int(client, DAEMON_ERROR);
             return;
         }
@@ -349,7 +351,7 @@ int enable_deny() {
 
         // Initialize the denylist
         denylist_enforced = true;
-        if (!init_list()) {
+        if (!ensure_data()) {
             denylist_enforced = false;
             return DAEMON_ERROR;
         }
@@ -391,7 +393,7 @@ void initialize_denylist() {
 
 bool is_deny_target(int uid, string_view process) {
     mutex_guard lock(data_lock);
-    if (!init_list())
+    if (!ensure_data())
         return false;
 
     rescan_apps();

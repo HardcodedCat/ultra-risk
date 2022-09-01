@@ -9,11 +9,11 @@
 
         <variable
             name="item"
-            type="com.topjohnwu.magisk.ui.deny.DenyListRvItem" />
+            type="com.topjohnwu.magisk.ui.hide.HideRvItem" />
 
         <variable
             name="viewModel"
-            type="com.topjohnwu.magisk.ui.deny.DenyListViewModel" />
+            type="com.topjohnwu.magisk.ui.hide.HideViewModel" />
 
     </data>
 

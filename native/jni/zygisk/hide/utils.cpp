@@ -40,6 +40,8 @@ void update_uid_map() {
         pkg_xml_ino = st.st_ino;
     }
 
+    LOGD("hide_list: rescanning apps\n");
+
     app_id_to_pkgs.clear();
     cached_manager_app_id = -1;
 
@@ -99,6 +101,7 @@ static void update_pkg_uid(const string &pkg, bool remove) {
 
 // Leave /proc fd opened as we're going to read from it repeatedly
 static DIR *procfp;
+
 void crawl_procfs(const function<bool(int)> &fn) {
     rewinddir(procfp);
     crawl_procfs(procfp, fn);
@@ -213,7 +216,7 @@ error:
     return false;
 }
 
-static int add_list(const char *pkg, const char *proc) {
+static int add_hide_list(const char *pkg, const char *proc) {
     if (proc[0] == '\0')
         proc = pkg;
 
@@ -239,13 +242,13 @@ static int add_list(const char *pkg, const char *proc) {
     return DAEMON_SUCCESS;
 }
 
-int add_list(int client) {
+int add_hide_list(int client) {
     string pkg = read_string(client);
     string proc = read_string(client);
-    return add_list(pkg.data(), proc.data());
+    return add_hide_list(pkg.data(), proc.data());
 }
 
-static int rm_list(const char *pkg, const char *proc) {
+static int rm_hide_list(const char *pkg, const char *proc) {
     {
         mutex_guard lock(hide_state_lock);
         if (!init_list())
@@ -285,13 +288,13 @@ static int rm_list(const char *pkg, const char *proc) {
     return DAEMON_SUCCESS;
 }
 
-int rm_list(int client) {
+int rm_hide_list(int client) {
     string pkg = read_string(client);
     string proc = read_string(client);
-    return rm_list(pkg.data(), proc.data());
+    return rm_hide_list(pkg.data(), proc.data());
 }
 
-void ls_list(int client) {
+void ls_hide_list(int client) {
     {
         mutex_guard lock(hide_state_lock);
         if (!init_list()) {
@@ -364,7 +367,7 @@ int launch_magiskhide(bool late_props) {
         }
 
         // If Android Q+, also kill blastula pool and all app zygotes
-        if (SDK_INT >= 29 && zygisk_enabled) {
+        if (SDK_INT >= 29) {
             kill_process("usap32", true);
             kill_process("usap64", true);
             kill_process("_zygote", true, proc_name_match<&str_ends_safe>);
@@ -373,8 +376,6 @@ int launch_magiskhide(bool late_props) {
         // Add SafetyNet by default
         add_hide_set(GMS_PKG, SNET_PROC);
 
-        // We also need to hide the default GMS process if MAGISKTMP != /sbin
-        // The snet process communicates with the main process and get additional info
         if (MAGISKTMP != "/sbin")
             add_hide_set(GMS_PKG, GMS_PKG);
 
@@ -434,13 +435,6 @@ bool is_hide_target(int uid, string_view process, int max_len) {
 
     int app_id = to_app_id(uid);
     if (app_id >= 90000) {
-        if (auto it = pkg_to_procs.find(ISOLATED_MAGIC); it != pkg_to_procs.end()) {
-            for (const auto &s : it->second) {
-                if (str_starts(process, s))
-                    return true;
-            }
-        }
-        // Isolated processes
         auto it = app_id_to_pkgs.find(-1);
         if (it == app_id_to_pkgs.end())
             return false;
@@ -450,19 +444,25 @@ bool is_hide_target(int uid, string_view process, int max_len) {
             if (str_starts(process, s))
                 return true;
         }
+        if (auto it = pkg_to_procs.find(ISOLATED_MAGIC); it != pkg_to_procs.end()) {
+            for (const auto &s : it->second) {
+                if (str_starts(process, s))
+                    return true;
+            }
+        }
         return false;
     } else {
         auto it = app_id_to_pkgs.find(app_id);
         if (it == app_id_to_pkgs.end())
             return false;
-        for (const auto &pkg : it->second) {
-            if (pkg_to_procs.find(pkg)->second.count(process))
-                return true;
-        }
         for (const auto &s : it->second) {
             if (s.length() > max_len && process.length() > max_len && str_starts(s, process))
                 return true;
             if (s == process)
+                return true;
+        }
+        for (const auto &pkg : it->second) {
+            if (pkg_to_procs.find(pkg)->second.count(process))
                 return true;
         }
     }

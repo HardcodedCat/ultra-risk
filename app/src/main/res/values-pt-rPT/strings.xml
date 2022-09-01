@@ -9,8 +9,6 @@
     <string name="install">Instalar</string>
 
     <!--Status Fragment-->
-    <string name="safetynet_api_error">Erro na API SafetyNet</string>
-    <string name="safetynet_res_invalid">A resposta é inválida</string>
 
     <!--Install Fragment-->
     <string name="keep_force_encryption">Manter encriptação forçada</string>
@@ -39,7 +37,6 @@
     <string name="reboot">Reiniciar</string>
     <string name="magisk_update_title">Nova atualização do Magisk disponível!</string>
     <string name="release_notes">Notas da atualização</string>
-    <string name="repo_cache_cleared">Cache do repositório apagado</string>
     <string name="manager_download_install">Pressione para transferir e instalar</string>
     <string name="update_channel">Atualizações do Magisk</string>
     <string name="flashing">A instalar</string>
@@ -53,7 +50,6 @@
     <string name="system_default">(Padrão do Sistema)</string>
     <string name="settings_update_stable">Estável</string>
     <string name="settings_update_beta">Beta</string>
-    <string name="settings_magiskhide_summary">Oculta Magisk de várias deteções</string>
     <string name="settings_hosts_title">Ativar systemless hosts</string>
     <string name="settings_hosts_summary">Suporte de systemless para aplicações Adblock</string>
 

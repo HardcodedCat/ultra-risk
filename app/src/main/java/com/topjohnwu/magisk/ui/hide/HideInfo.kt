@@ -8,12 +8,12 @@ import android.content.pm.PackageManager.*
 import android.content.pm.ServiceInfo
 import android.graphics.drawable.Drawable
 import android.os.Build.VERSION.SDK_INT
+import androidx.core.os.ProcessCompat
 import com.topjohnwu.magisk.core.utils.currentLocale
 import com.topjohnwu.magisk.ktx.getLabel
-import com.topjohnwu.magisk.ktx.isIsolated
-import com.topjohnwu.magisk.ktx.useAppZygote
+import java.util.*
 
-class CmdlineHiddenItem(line: String) {
+class CmdlineListItem(line: String) {
     val packageName: String
     val process: String
 
@@ -27,81 +27,85 @@ class CmdlineHiddenItem(line: String) {
 const val ISOLATED_MAGIC = "isolated"
 
 @SuppressLint("InlinedApi")
-class HideAppInfo(info: ApplicationInfo, pm: PackageManager, hideList: List<CmdlineHiddenItem>)
-    : ApplicationInfo(info), Comparable<HideAppInfo> {
+class AppProcessInfo(
+    private val info: ApplicationInfo,
+    pm: PackageManager,
+    hideList: List<CmdlineListItem>
+) : Comparable<AppProcessInfo> {
+
+    private val hideList = hideList.filter {
+        it.packageName == info.packageName || it.packageName == ISOLATED_MAGIC
+    }
 
     val label = info.getLabel(pm)
-    val iconImage: Drawable = info.loadIcon(pm)
-    val processes = fetchProcesses(pm, hideList)
+    val iconImage: Drawable = runCatching { info.loadIcon(pm) }.getOrDefault(pm.defaultActivityIcon)
+    val packageName: String get() = info.packageName
+    val processes = fetchProcesses(pm)
 
-    override fun compareTo(other: HideAppInfo) = comparator.compare(this, other)
+    override fun compareTo(other: AppProcessInfo) = comparator.compare(this, other)
 
-    private fun fetchProcesses(
-        pm: PackageManager,
-        hideList: List<CmdlineHiddenItem>
-    ): List<HideProcessInfo> {
-        // Fetch full PackageInfo
-        val baseFlag = MATCH_DISABLED_COMPONENTS or MATCH_UNINSTALLED_PACKAGES
-        val packageInfo = try {
-            val request = GET_ACTIVITIES or GET_SERVICES or GET_RECEIVERS or GET_PROVIDERS
-            pm.getPackageInfo(packageName, baseFlag or request)
-        } catch (e: NameNotFoundException) {
-            // EdXposed hooked, issue#3276
-            return emptyList()
-        } catch (e: Exception) {
-            // Exceed binder data transfer limit, fetch each component type separately
-            pm.getPackageInfo(packageName, baseFlag).apply {
-                runCatching { activities = pm.getPackageInfo(packageName, baseFlag or GET_ACTIVITIES).activities }
-                runCatching { services = pm.getPackageInfo(packageName, baseFlag or GET_SERVICES).services }
-                runCatching { receivers = pm.getPackageInfo(packageName, baseFlag or GET_RECEIVERS).receivers }
-                runCatching { providers = pm.getPackageInfo(packageName, baseFlag or GET_PROVIDERS).providers }
-            }
-        }
+    fun isSystemApp() = info.flags and ApplicationInfo.FLAG_SYSTEM != 0
 
-        val hidden = hideList.filter { it.packageName == packageName || it.packageName == ISOLATED_MAGIC }
-        fun createProcess(name: String, pkg: String = packageName): HideProcessInfo {
-            return HideProcessInfo(name, pkg, hidden.any { it.process == name && it.packageName == pkg })
-        }
+    fun isApp() = ProcessCompat.isApplicationUid(info.uid)
 
-        var haveAppZygote = false
-        fun Array<out ComponentInfo>.processes() = map { createProcess(it.processName) }
-        fun Array<ServiceInfo>.processes() = map {
-            if (it.isIsolated) {
-                if (it.useAppZygote) {
-                    haveAppZygote = true
-                    // Using app zygote, don't need to track the process
-                    null
-                } else {
-                    val proc = if (SDK_INT >= 29) "${it.processName}:${it.name}" else it.processName
-                    createProcess(proc, ISOLATED_MAGIC)
-                }
+    private fun createProcess(name: String, pkg: String = info.packageName) =
+        ProcessInfo(name, pkg, hideList.any { it.process == name && it.packageName == pkg })
+
+    private fun ComponentInfo.getProcName(): String = processName
+        ?: applicationInfo.processName
+        ?: applicationInfo.packageName
+
+    private val ServiceInfo.isIsolated get() = (flags and ServiceInfo.FLAG_ISOLATED_PROCESS) != 0
+    private val ServiceInfo.useAppZygote get() = (flags and ServiceInfo.FLAG_USE_APP_ZYGOTE) != 0
+
+    private fun Array<out ComponentInfo>?.toProcessList() =
+        orEmpty().map { createProcess(it.getProcName()) }
+
+    private fun Array<ServiceInfo>?.toProcessList() = orEmpty().map {
+        if (it.isIsolated) {
+            if (it.useAppZygote) {
+                val proc = info.processName ?: info.packageName
+                createProcess("${proc}_zygote")
             } else {
-                createProcess(it.processName)
+                val proc = if (SDK_INT >= 29) "${it.getProcName()}:${it.name}" else it.getProcName()
+                createProcess(proc, ISOLATED_MAGIC)
             }
+        } else {
+            createProcess(it.getProcName())
+        }
+    }
+
+    private fun fetchProcesses(pm: PackageManager): Collection<ProcessInfo> {
+        val flag = MATCH_DISABLED_COMPONENTS or MATCH_UNINSTALLED_PACKAGES or
+            GET_ACTIVITIES or GET_SERVICES or GET_RECEIVERS or GET_PROVIDERS
+        val packageInfo = try {
+            pm.getPackageInfo(info.packageName, flag)
+        } catch (e: Exception) {
+            // Exceed binder data transfer limit, parse the package locally
+            pm.getPackageArchiveInfo(info.sourceDir, flag) ?: return emptyList()
         }
 
-        return with(packageInfo) {
-            activities?.processes().orEmpty() +
-            services?.processes().orEmpty() +
-            receivers?.processes().orEmpty() +
-            providers?.processes().orEmpty() +
-            listOf(if (haveAppZygote) createProcess("${processName}_zygote") else null)
-        }.filterNotNull().distinct().sortedBy { it.name }
+        val processSet = TreeSet<ProcessInfo>(compareBy({ it.name }, { it.isIsolated }))
+        processSet += packageInfo.activities.toProcessList()
+        processSet += packageInfo.services.toProcessList()
+        processSet += packageInfo.receivers.toProcessList()
+        processSet += packageInfo.providers.toProcessList()
+        return processSet
     }
 
     companion object {
-        private val comparator = compareBy<HideAppInfo>(
-            { it.label.toLowerCase(currentLocale) },
-            { it.packageName }
+        private val comparator = compareBy<AppProcessInfo>(
+            { it.label.lowercase(currentLocale) },
+            { it.info.packageName }
         )
     }
 }
 
-data class HideProcessInfo(
+data class ProcessInfo(
     val name: String,
     val packageName: String,
-    var isHidden: Boolean
+    var isEnabled: Boolean
 ) {
-    val isIsolated get() = packageName == ISOLATED_MAGIC
-    val isAppZygote get() = name.endsWith("_zygote")
+    val isIsolated = packageName == ISOLATED_MAGIC
+    val isAppZygote = name.endsWith("_zygote")
 }

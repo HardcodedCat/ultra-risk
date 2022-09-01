@@ -18,9 +18,9 @@
 // CLI entries
 int launch_magiskhide(bool late_props);
 int stop_magiskhide();
-int add_list(int client);
-int rm_list(int client);
-void ls_list(int client);
+int add_hide_list(int client);
+int rm_hide_list(int client);
+void ls_hide_list(int client);
 
 // Process monitoring
 extern pthread_t monitor_thread;

@@ -27,7 +27,7 @@
             android:paddingTop="@dimen/internal_action_bar_size"
             app:fitsSystemWindowsInsets="top|bottom"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            tools:listitem="@layout/item_hide_md3"
+            tools:listitem="@layout/item_hide_md2"
             tools:paddingTop="40dp" />
 
         <LinearLayout

@@ -6,30 +6,23 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
-import androidx.core.view.isVisible
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.RecyclerView
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.arch.BaseFragment
 import com.topjohnwu.magisk.databinding.FragmentHideMd2Binding
 import com.topjohnwu.magisk.di.viewModel
-import com.topjohnwu.magisk.ktx.addSimpleItemDecoration
-import com.topjohnwu.magisk.ktx.addVerticalPadding
-import com.topjohnwu.magisk.ktx.fixEdgeEffect
 import com.topjohnwu.magisk.ktx.hideKeyboard
-import com.topjohnwu.magisk.utils.MotionRevealHelper
+import rikka.recyclerview.addEdgeSpacing
+import rikka.recyclerview.addItemSpacing
+import rikka.recyclerview.fixEdgeEffect
 
 class HideFragment : BaseFragment<FragmentHideMd2Binding>() {
 
     override val layoutRes = R.layout.fragment_hide_md2
     override val viewModel by viewModel<HideViewModel>()
 
-    private var isFilterVisible
-        get() = binding.hideFilter.isVisible
-        set(value) {
-            if (!value) hideKeyboard()
-            MotionRevealHelper.withViews(binding.hideFilter, binding.hideFilterToggle, value)
-        }
+    private lateinit var searchView: SearchView
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -40,62 +33,67 @@ class HideFragment : BaseFragment<FragmentHideMd2Binding>() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.hideFilterToggle.setOnClickListener {
-            isFilterVisible = true
-        }
-        binding.hideFilterInclude.hideFilterDone.setOnClickListener {
-            isFilterVisible = false
-        }
-        binding.hideContent.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        binding.appList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 if (newState != RecyclerView.SCROLL_STATE_IDLE) hideKeyboard()
             }
         })
 
-        val resource = requireContext().resources
-        val l_50 = resource.getDimensionPixelSize(R.dimen.l_50)
-        val l1 = resource.getDimensionPixelSize(R.dimen.l1)
-        binding.hideContent.addVerticalPadding(
-            l_50,
-            l1 + resource.getDimensionPixelSize(R.dimen.internal_action_bar_size)
-        )
-        binding.hideContent.addSimpleItemDecoration(
-            left = l1,
-            top = l_50,
-            right = l1,
-            bottom = l_50,
-        )
-        binding.hideContent.fixEdgeEffect()
-
-        val lama = binding.hideContent.layoutManager ?: return
-        lama.isAutoMeasureEnabled = false
+        binding.appList.apply {
+            addEdgeSpacing(top = R.dimen.l_50, bottom = R.dimen.l1)
+            addItemSpacing(R.dimen.l1, R.dimen.l_50, R.dimen.l1)
+            fixEdgeEffect()
+        }
     }
 
     override fun onPreBind(binding: FragmentHideMd2Binding) = Unit
 
     override fun onBackPressed(): Boolean {
-        if (isFilterVisible) {
-            isFilterVisible = false
+        if (searchView.isIconfiedByDefault && !searchView.isIconified) {
+            searchView.isIconified = true
             return true
         }
         return super.onBackPressed()
     }
 
-    // ---
-
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.menu_hide_md2, menu)
+        inflater.inflate(R.menu.menu_deny_md2, menu)
+        searchView = menu.findItem(R.id.action_search).actionView as SearchView
+        searchView.queryHint = searchView.context.getString(R.string.hide_filter_hint)
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                viewModel.query = query ?: ""
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                viewModel.query = newText ?: ""
+                return true
+            }
+        })
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.action_focus_up -> binding.hideContent
-                .takeIf { (it.layoutManager as? LinearLayoutManager)?.findFirstVisibleItemPosition() ?: 0 > 10 }
-                ?.also { it.scrollToPosition(10) }
-                .let { binding.hideContent }
-                .also { it.post { it.smoothScrollToPosition(0) } }
+            R.id.action_show_system -> {
+                val check = !item.isChecked
+                viewModel.isShowSystem = check
+                item.isChecked = check
+                return true
+            }
+            R.id.action_show_OS -> {
+                val check = !item.isChecked
+                viewModel.isShowOS = check
+                item.isChecked = check
+                return true
+            }
         }
         return super.onOptionsItemSelected(item)
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        val showSystem = menu.findItem(R.id.action_show_system)
+        val showOS = menu.findItem(R.id.action_show_OS)
+        showOS.isEnabled = showSystem.isChecked
+    }
 }

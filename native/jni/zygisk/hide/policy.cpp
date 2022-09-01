@@ -92,7 +92,7 @@ void hide_unmount(int pid) {
     if (pid > 0 && switch_mnt_ns(pid))
         return;
 
-    LOGD("hide: handling PID=[%d]\n", pid > 0 ? pid : getpid());
+    LOGD("hide: handling PID=[%d]\n", pid);
 
     char val;
     int fd = xopen(SELINUX_ENFORCE, O_RDONLY);
@@ -120,7 +120,7 @@ void hide_unmount(int pid) {
 
     // Unmount all Magisk created mounts
     parse_mnt("/proc/self/mounts", [&](mntent *mentry) {
-        if (strstr(mentry->mnt_fsname, BLOCKDIR))
+        if (str_contains(mentry->mnt_fsname, BLOCKDIR))
             targets.emplace_back(mentry->mnt_dir);
         return true;
     });

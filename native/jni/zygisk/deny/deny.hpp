@@ -13,14 +13,13 @@
 // CLI entries
 int enable_deny();
 int disable_deny();
-int add_lst(int client);
-int rm_lst(int client);
-void ls_lst(int client);
+int add_list(int client);
+int rm_list(int client);
+void ls_list(int client);
 
 // Utility functions
 bool is_deny_target(int uid, std::string_view process);
 
-// Hide policies
 void revert_unmount();
 
 extern std::atomic<bool> denylist_enforced;

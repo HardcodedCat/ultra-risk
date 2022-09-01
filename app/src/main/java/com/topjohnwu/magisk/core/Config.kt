@@ -39,6 +39,7 @@ object Config : PreferenceModel, DBConfig {
         const val SU_BIOMETRIC = "su_biometric"
         const val ZYGISK = "zygisk"
         const val DENYLIST = "denylist"
+        const val MAGISKHIDE = "magiskhide"
         const val SU_MANAGER = "requester"
         const val KEYSTORE = "keystore"
 
@@ -62,9 +63,6 @@ object Config : PreferenceModel, DBConfig {
         const val BOOT_ID = "boot_id"
         const val ASKED_HOME = "asked_home"
         const val DOH = "doh"
-
-        // system state
-        const val MAGISKHIDE = "magiskhide"
     }
 
     object Value {
@@ -137,7 +135,6 @@ object Config : PreferenceModel, DBConfig {
     var suTapjack by preference(Key.SU_TAPJACK, true)
     var checkUpdate by preference(Key.CHECK_UPDATES, true)
     var doh by preference(Key.DOH, false)
-    var magiskHide by preference(Key.MAGISKHIDE, true)
     var showUpdateDone by preference(Key.SHOW_UPDATE_DONE, false)
     var showSystemApp by preference(Key.SHOW_SYSTEM_APP, false)
 
@@ -156,6 +153,7 @@ object Config : PreferenceModel, DBConfig {
     var suBiometric by dbSettings(Key.SU_BIOMETRIC, false)
     var zygisk by dbSettings(Key.ZYGISK, false)
     var denyList by DBBoolSettingsNoWrite(Key.DENYLIST, false)
+    var magiskHide by DBBoolSettingsNoWrite(Key.MAGISKHIDE, false)
     var suManager by dbStrings(Key.SU_MANAGER, "", true)
     var keyStoreRaw by dbStrings(Key.KEYSTORE, "", true)
 

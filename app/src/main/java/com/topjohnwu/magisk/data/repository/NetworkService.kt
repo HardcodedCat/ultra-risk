@@ -7,7 +7,9 @@ import com.topjohnwu.magisk.core.Config.Value.CUSTOM_CHANNEL
 import com.topjohnwu.magisk.core.Config.Value.DEFAULT_CHANNEL
 import com.topjohnwu.magisk.core.Config.Value.STABLE_CHANNEL
 import com.topjohnwu.magisk.core.Info
-import com.topjohnwu.magisk.data.network.*
+import com.topjohnwu.magisk.data.network.GithubApiServices
+import com.topjohnwu.magisk.data.network.GithubPageServices
+import com.topjohnwu.magisk.data.network.RawServices
 import retrofit2.HttpException
 import timber.log.Timber
 import java.io.IOException
@@ -15,7 +17,6 @@ import java.io.IOException
 class NetworkService(
     private val pages: GithubPageServices,
     private val raw: RawServices,
-    private val jsd: JSDelivrServices,
     private val api: GithubApiServices
 ) {
     suspend fun fetchUpdate() = safe {
@@ -59,7 +60,6 @@ class NetworkService(
     }
 
     // Fetch files
-    suspend fun fetchSafetynet() = fetchFile("https://github.com/TheHitMan7/Magisk-Files/raw/master/snet/snet.jar")
     suspend fun fetchFile(url: String) = wrap { raw.fetchFile(url) }
     suspend fun fetchString(url: String) = wrap { raw.fetchString(url) }
     suspend fun fetchModuleJson(url: String) = wrap { raw.fetchModuleJson(url) }

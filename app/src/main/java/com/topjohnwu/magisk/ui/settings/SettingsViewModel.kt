@@ -56,20 +56,18 @@ class SettingsViewModel : BaseViewModel(), BaseSettingsItem.Handler {
         ))
         if (Info.env.isActive) {
             if (Const.USER_ID == 0) {
-                if (hidden)
-                    list.add(Restore)
-                else
-                    list.add(Hide)
+                if (hidden) list.add(Restore) else list.add(Hide)
             }
         }
 
         // Magisk
         if (Info.env.isActive) {
             list.addAll(listOf(
-                Magisk
+                Magisk,
+                SystemlessHosts
             ))
             if (Const.Version.atLeast_24_0()) {
-                list.addAll(listOf(Zygisk, DenyList, DenyListConfig, MagiskHide, HideListConfig, SystemlessHosts))
+                list.addAll(listOf(Zygisk, DenyList, DenyListConfig, MagiskHide, HideListConfig))
             }
         }
 

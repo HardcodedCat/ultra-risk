@@ -13,7 +13,6 @@
 #include "zygisk.hpp"
 #include "module.hpp"
 #include "deny/deny.hpp"
-#include "hide/hide.hpp"
 
 using namespace std;
 
@@ -150,34 +149,6 @@ static int zygisk_log(int prio, const char *fmt, va_list ap) {
         pthread_sigmask(SIG_SETMASK, &orig_mask, nullptr);
     }
     return ret;
-}
-
-bool remote_check_hide(int uid, const char *process) {
-    if (int fd = connect_daemon(); fd >= 0) {
-        write_int(fd, ZYGISK_REQUEST);
-        write_int(fd, ZYGISK_HIDELIST);
-
-        int ret = -1;
-        if (read_int(fd) == 0) {
-            write_int(fd, uid);
-            write_string(fd, process);
-            ret = read_int(fd);
-        }
-        close(fd);
-        return ret >= 0 && ret;
-    }
-    return false;
-}
-
-int remote_request_hide() {
-    if (int fd = connect_daemon(); fd >= 0) {
-        write_int(fd, ZYGISK_REQUEST);
-        write_int(fd, ZYGISK_UNMOUNT);
-        int ret = read_int(fd);
-        close(fd);
-        return ret;
-    }
-    return DAEMON_ERROR;
 }
 
 static inline bool should_load_modules(uint32_t flags) {
@@ -426,18 +397,6 @@ static void get_moddir(int client) {
     close(dfd);
 }
 
-// Response whether target process should be hidden
-static void check_uid_map(int client) {
-    if (!hide_enabled) {
-        write_int(client, HIDE_NOT_ENABLED);
-        return;
-    }
-    write_int(client, 0);
-    int uid = read_int(client);
-    string process = read_string(client);
-    write_int(client, is_hide_target(uid, process));
-}
-
 void zygisk_handler(int client, const sock_cred *cred) {
     int code = read_int(client);
     char buf[256];
@@ -460,15 +419,6 @@ void zygisk_handler(int client, const sock_cred *cred) {
         break;
     case ZYGISK_GET_MODDIR:
         get_moddir(client);
-        break;
-    case ZYGISK_HIDELIST:
-        check_uid_map(client);
-        break;
-    case ZYGISK_UNMOUNT:
-        kill(cred->pid, SIGSTOP);
-        write_int(client, 0);
-        hide_daemon(cred->pid);
-        close(client);
         break;
     }
     close(client);
