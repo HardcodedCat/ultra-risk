@@ -21,6 +21,7 @@ int stop_magiskhide();
 int add_hide_list(int client);
 int rm_hide_list(int client);
 void ls_hide_list(int client);
+int check_uid_map(int client);
 
 // Process monitoring
 extern pthread_t monitor_thread;
@@ -49,6 +50,8 @@ enum {
     RM_HIDELIST,
     LS_HIDELIST,
     HIDE_STATUS,
+    REMOTE_CHECK_HIDE,
+    REMOTE_DO_HIDE,
 };
 
 enum {

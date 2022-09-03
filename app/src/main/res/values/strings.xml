@@ -173,6 +173,7 @@
     <string name="settings_doh_description">Workaround DNS poisoning in some nations</string>
 
     <string name="settings_magiskhide_summary">Hide Magisk from various forms of detection</string>
+    <string name="settings_magiskhide_error">This feature requires %1$s to be enabled</string>
     <string name="settings_magiskhide_config_title">Configure HideList</string>
     <string name="settings_magiskhide_config_summary">Select the processes to be included on the hidelist</string>
 

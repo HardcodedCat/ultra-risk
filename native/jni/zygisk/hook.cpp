@@ -28,6 +28,7 @@ static bool unhook_functions();
 namespace {
 
 enum {
+    DO_HIDE,
     DO_UNMOUNT,
     FORK_AND_SPECIALIZE,
     APP_SPECIALIZE,
@@ -151,6 +152,9 @@ DCL_HOOK_FUNC(int, fork) {
 DCL_HOOK_FUNC(int, unshare, int flags) {
     int res = old_unshare(flags);
     if (g_ctx && (flags & CLONE_NEWNS) != 0 && res == 0) {
+        if (g_ctx->state[DO_HIDE]) {
+            remote_request_hide();
+        }
         if (g_ctx->state[DO_UNMOUNT]) {
             revert_unmount();
         } else {
@@ -446,6 +450,13 @@ void HookContext::nativeSpecializeAppProcess_pre() {
         ZLOGV("pre  forkAndSpecialize [%s]\n", process);
     } else {
         ZLOGV("pre  specialize [%s]\n", process);
+    }
+
+    if (remote_check_hide(args->uid, process)) {
+        ZLOGI("[%s] is on the hide list\n", process);
+        state[DO_HIDE] = true;
+        // Handle MOUNT_EXTERNAL_NONE on older platforms
+        args->mount_external = 1;
     }
 
     vector<int> module_fds;

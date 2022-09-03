@@ -203,6 +203,17 @@ static bool is_client(pid_t pid) {
     return !(stat(path, &st) || st.st_dev != self_st.st_dev || st.st_ino != self_st.st_ino);
 }
 
+static bool check_zygote(pid_t pid) {
+    char buf[32];
+    sprintf(buf, "/proc/%d/attr/current", pid);
+    if (auto fp = open_file(buf, "r")) {
+        fscanf(fp.get(), "%s", buf);
+        return buf == "u:r:zygote:s0"sv;
+    } else {
+        return false;
+    }
+}
+
 static void handle_request(pollfd *pfd) {
     int client = xaccept4(pfd->fd, nullptr, nullptr, SOCK_CLOEXEC);
 
@@ -215,7 +226,7 @@ static void handle_request(pollfd *pfd) {
     if (!get_client_cred(client, &cred))
         goto done;
     is_root = cred.uid == UID_ROOT;
-    is_zygote = cred.context == "u:r:zygote:s0";
+    is_zygote = check_zygote(cred.pid);
 
     if (!is_root && !is_zygote && !is_client(cred.pid))
         goto done;

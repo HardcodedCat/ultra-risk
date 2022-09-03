@@ -89,3 +89,7 @@ int denylist_cli(int argc, char **argv);
 // MagiskHide
 void auto_start_magiskhide(bool late_props);
 int stop_magiskhide();
+
+// For injected process to access daemon
+int remote_check_hide(int uid, const char *process);
+void remote_request_hide();

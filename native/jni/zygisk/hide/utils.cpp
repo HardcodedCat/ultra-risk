@@ -27,6 +27,8 @@ static pthread_mutex_t hide_state_lock = PTHREAD_MUTEX_INITIALIZER;
 
 atomic<bool> hide_enabled = false;
 
+#define do_kill (zygisk_enabled && hide_enabled)
+
 static unsigned long long pkg_xml_ino = 0;
 
 void update_uid_map() {
@@ -185,6 +187,8 @@ static auto add_hide_set(const char *pkg, const char *proc) {
     if (!p.second)
         return p;
     LOGI("hide_list add: [%s/%s]\n", pkg, proc);
+    if (!do_kill)
+        return p;
     if (str_eql(pkg, ISOLATED_MAGIC)) {
         // Kill all matching isolated processes
         kill_process(proc, true, proc_name_match<&str_starts>);
@@ -340,9 +344,6 @@ static int new_daemon_thread(void(*entry)()) {
     return new_daemon_thread(proxy, (void *) entry);
 }
 
-#define SNET_PROC    "com.google.android.gms.unstable"
-#define GMS_PKG      "com.google.android.gms"
-
 int launch_magiskhide(bool late_props) {
     if (hide_enabled) {
         return DAEMON_SUCCESS;
@@ -367,17 +368,11 @@ int launch_magiskhide(bool late_props) {
         }
 
         // If Android Q+, also kill blastula pool and all app zygotes
-        if (SDK_INT >= 29) {
+        if (SDK_INT >= 29 && zygisk_enabled) {
             kill_process("usap32", true);
             kill_process("usap64", true);
             kill_process("_zygote", true, proc_name_match<&str_ends_safe>);
         }
-
-        // Add SafetyNet by default
-        add_hide_set(GMS_PKG, SNET_PROC);
-
-        if (MAGISKTMP != "/sbin")
-            add_hide_set(GMS_PKG, GMS_PKG);
 
         hide_sensitive_props();
         if (late_props)
@@ -435,17 +430,18 @@ bool is_hide_target(int uid, string_view process, int max_len) {
 
     int app_id = to_app_id(uid);
     if (app_id >= 90000) {
-        auto it = app_id_to_pkgs.find(-1);
-        if (it == app_id_to_pkgs.end())
-            return false;
-        for (const auto &s : it->second) {
-            if (s.length() > max_len && process.length() > max_len && str_starts(s, process))
-                return true;
-            if (str_starts(process, s))
-                return true;
-        }
         if (auto it = pkg_to_procs.find(ISOLATED_MAGIC); it != pkg_to_procs.end()) {
             for (const auto &s : it->second) {
+                if (s.length() > max_len && process.length() > max_len && str_starts(s, process))
+                    return true;
+                if (str_starts(process, s))
+                    return true;
+            }
+        }
+        if (auto it = app_id_to_pkgs.find(-1); it != app_id_to_pkgs.end()) {
+            for (const auto &s : it->second) {
+                if (s.length() > max_len && process.length() > max_len && str_starts(s, process))
+                    return true;
                 if (str_starts(process, s))
                     return true;
             }
@@ -455,14 +451,14 @@ bool is_hide_target(int uid, string_view process, int max_len) {
         auto it = app_id_to_pkgs.find(app_id);
         if (it == app_id_to_pkgs.end())
             return false;
+        for (const auto &pkg : it->second) {
+            if (pkg_to_procs.find(pkg)->second.count(process))
+                return true;
+        }
         for (const auto &s : it->second) {
             if (s.length() > max_len && process.length() > max_len && str_starts(s, process))
                 return true;
             if (s == process)
-                return true;
-        }
-        for (const auto &pkg : it->second) {
-            if (pkg_to_procs.find(pkg)->second.count(process))
                 return true;
         }
     }
@@ -473,4 +469,13 @@ void test_proc_monitor() {
     if (procfp == nullptr && (procfp = opendir("/proc")) == nullptr)
         exit(1);
     proc_monitor();
+}
+
+int check_uid_map(int client) {
+    if (!hide_enabled)
+        return 0;
+
+    int uid = read_int(client);
+    string process = read_string(client);
+    return is_hide_target(uid, process) ? 1 : 0;
 }
