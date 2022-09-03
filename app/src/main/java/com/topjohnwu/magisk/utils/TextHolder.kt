@@ -14,19 +14,15 @@ abstract class TextHolder {
     class String(
         private val value: CharSequence
     ) : TextHolder() {
-
         override val isEmpty get() = value.isEmpty()
         override fun getText(resources: Resources) = value
-
     }
 
     open class Resource(
         protected val value: Int
     ) : TextHolder() {
-
         override val isEmpty get() = value == 0
         override fun getText(resources: Resources) = resources.getString(value)
-
     }
 
     class ResourceArgs(

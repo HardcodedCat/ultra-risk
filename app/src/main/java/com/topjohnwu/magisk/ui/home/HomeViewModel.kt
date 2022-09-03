@@ -96,7 +96,6 @@ class HomeViewModel(
 
             managerRemoteVersion =
                 "${magisk.version} (${magisk.versionCode}) (${stub.versionCode})".asText()
-
         } ?: run {
             state = State.LOADING_FAILED
             managerRemoteVersion = R.string.not_available.asText()

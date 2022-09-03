@@ -40,9 +40,7 @@ class DBSettingsValue(
     @Synchronized
     override fun getValue(thisRef: DBConfig, property: KProperty<*>): Int {
         if (value == null)
-            value = runBlocking {
-                thisRef.settingsDB.fetch(name, default)
-            }
+            value = runBlocking { thisRef.settingsDB.fetch(name, default) }
         return value as Int
     }
 

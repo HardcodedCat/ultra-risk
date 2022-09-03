@@ -76,7 +76,7 @@ class MainActivity : BaseMainActivity<ActivityMainMd2Binding>() {
 
         setSupportActionBar(binding.mainToolbar)
 
-        binding.mainNavigation.setOnNavigationItemSelectedListener {
+        binding.mainNavigation.setOnItemSelectedListener {
             getScreen(it.itemId)?.navigate()
             true
         }

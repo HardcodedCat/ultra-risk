@@ -32,7 +32,7 @@ enum : int {
     REMOVE_MODULES,
     ZYGISK_REQUEST,
     ZYGISK_PASSTHROUGH,
-    DAEMON_CODE_END
+    DAEMON_CODE_END,
 };
 
 // Return codes for daemon

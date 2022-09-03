@@ -55,7 +55,6 @@ object Config : PreferenceModel, DBConfig {
         const val LOCALE = "locale"
         const val DARK_THEME = "dark_theme_extended"
         const val REPO_ORDER = "repo_order"
-        const val SHOW_UPDATE_DONE = "update_done"
         const val SHOW_SYSTEM_APP = "show_system"
         const val DOWNLOAD_DIR = "download_dir"
         const val SAFETY = "safety_notice"
@@ -63,6 +62,7 @@ object Config : PreferenceModel, DBConfig {
         const val BOOT_ID = "boot_id"
         const val ASKED_HOME = "asked_home"
         const val DOH = "doh"
+        const val SHOW_UPDATE_DONE = "update_done"
     }
 
     object Value {

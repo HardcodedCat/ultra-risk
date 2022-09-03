@@ -15,7 +15,6 @@ import androidx.appcompat.app.AppCompatDialog
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.databinding.Bindable
 import androidx.databinding.PropertyChangeRegistry
-import androidx.databinding.ViewDataBinding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.color.MaterialColors
@@ -23,6 +22,7 @@ import com.google.android.material.shape.MaterialShapeDrawable
 import com.topjohnwu.magisk.BR
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.databinding.*
+import com.topjohnwu.magisk.view.MagiskDialog.DialogClickListener
 import me.tatarka.bindingcollectionadapter2.BindingRecyclerViewAdapters
 import me.tatarka.bindingcollectionadapter2.ItemBinding
 

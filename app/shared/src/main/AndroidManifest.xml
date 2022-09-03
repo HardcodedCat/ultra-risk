@@ -22,10 +22,6 @@
         android:label="Magisk"
         android:requestLegacyExternalStorage="true"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Translucent.NoTitleBar"
-        android:usesCleartextTraffic="true"
-        tools:ignore="UnusedAttribute">
-
-    </application>
+        android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
 </manifest>

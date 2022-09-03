@@ -5,7 +5,6 @@ import com.topjohnwu.magisk.BR
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.arch.BaseViewModel
 import com.topjohnwu.magisk.core.Info
-import com.topjohnwu.magisk.core.download.Subject
 import com.topjohnwu.magisk.core.model.module.LocalModule
 import com.topjohnwu.magisk.core.model.module.OnlineModule
 import com.topjohnwu.magisk.databinding.RvItem

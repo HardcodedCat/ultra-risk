@@ -17,6 +17,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
+import java.io.File
 import java.net.InetAddress
 import java.net.UnknownHostException
 
@@ -30,7 +31,6 @@ private class DnsResolver(client: OkHttpClient) : Dns {
                 InetAddress.getByName("162.159.46.1"),
                 InetAddress.getByName("1.1.1.1"),
                 InetAddress.getByName("1.0.0.1"),
-                InetAddress.getByName("162.159.132.53"),
                 InetAddress.getByName("2606:4700:4700::1111"),
                 InetAddress.getByName("2606:4700:4700::1001"),
                 InetAddress.getByName("2606:4700:4700::0064"),
@@ -50,9 +50,10 @@ private class DnsResolver(client: OkHttpClient) : Dns {
     }
 }
 
-@Suppress("DEPRECATION")
+
 fun createOkHttpClient(context: Context): OkHttpClient {
-    val builder = OkHttpClient.Builder()
+    val appCache = Cache(File(context.cacheDir, "okhttp"), 10 * 1024 * 1024)
+    val builder = OkHttpClient.Builder().cache(appCache)
 
     if (BuildConfig.DEBUG) {
         builder.addInterceptor(HttpLoggingInterceptor().apply {

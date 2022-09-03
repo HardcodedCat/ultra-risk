@@ -699,6 +699,7 @@ static void collect_modules(bool open_zygisk) {
         unlinkat(modfd, "update", 0);
         if (faccessat(modfd, "disable", F_OK, 0) == 0)
             return;
+
         module_info info;
         if (zygisk_enabled) {
             // Riru and its modules are not compatible with zygisk

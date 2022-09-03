@@ -14,8 +14,6 @@ import android.content.pm.PackageInstaller.SessionParams;
 import android.net.Uri;
 import android.os.Build;
 
-import com.topjohnwu.magisk.FileProvider;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilterOutputStream;
