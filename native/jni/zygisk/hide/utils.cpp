@@ -27,8 +27,6 @@ static pthread_mutex_t hide_state_lock = PTHREAD_MUTEX_INITIALIZER;
 
 atomic<bool> hide_enabled = false;
 
-#define do_kill (zygisk_enabled && hide_enabled)
-
 static unsigned long long pkg_xml_ino = 0;
 
 void update_uid_map() {
@@ -187,8 +185,6 @@ static auto add_hide_set(const char *pkg, const char *proc) {
     if (!p.second)
         return p;
     LOGI("hide_list add: [%s/%s]\n", pkg, proc);
-    if (!do_kill)
-        return p;
     if (str_eql(pkg, ISOLATED_MAGIC)) {
         // Kill all matching isolated processes
         kill_process(proc, true, proc_name_match<&str_starts>);
@@ -368,7 +364,7 @@ int launch_magiskhide(bool late_props) {
         }
 
         // If Android Q+, also kill blastula pool and all app zygotes
-        if (SDK_INT >= 29 && zygisk_enabled) {
+        if (SDK_INT >= 29) {
             kill_process("usap32", true);
             kill_process("usap64", true);
             kill_process("_zygote", true, proc_name_match<&str_ends_safe>);
