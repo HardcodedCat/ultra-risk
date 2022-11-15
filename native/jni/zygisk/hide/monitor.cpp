@@ -170,8 +170,8 @@ static void term_thread(int) {
  * Ptrace
  *********/
 
-#define PTRACE_LOG(fmt, args...) LOGD("PID=[%d] " fmt, pid, ##args)
-//#define PTRACE_LOG(...)
+// #define PTRACE_LOG(fmt, args...) LOGD("PID=[%d] " fmt, pid, ##args)
+#define PTRACE_LOG(...)
 
 static void detach_pid(int pid, int signal = 0) {
     attaches[pid] = false;
@@ -211,10 +211,10 @@ static bool check_pid(int pid) {
     if ((cmdline == "zygote"sv || cmdline == "zygote32"sv || cmdline == "zygote64"sv) && context != "u:r:zygote:s0"sv){
         // this is pre-initialized app zygote
         if (strstr(context, "u:r:app_zygote:s0")){
-       	    PTRACE_LOG("this is app zygote");
+       	    PTRACE_LOG("this is app zygote\n");
             goto check_and_hide;
         }
-       	PTRACE_LOG("this is app process");
+       	PTRACE_LOG("this is app process\n");
 
         // wait until pre-initialized
         for (int i=0; cmdline != "<pre-initialized>"sv; i++) {
