@@ -57,6 +57,11 @@ void hide_sensitive_props() {
     if (!hwcountry.empty() && str_contains(hwcountry, "China"))
         setprop("ro.boot.hwcountry", "GLOBAL", false);
 
+    auto usap_enabled = getprop("persist.device_config.runtime_native.usap_pool_enabled");
+    if (!usap_enabled.empty())
+        setprop("persist.device_config.runtime_native.usap_pool_enabled", "false", false);
+
+
     auto selinux = getprop("ro.build.selinux");
     if (!selinux.empty())
         delprop("ro.build.selinux");

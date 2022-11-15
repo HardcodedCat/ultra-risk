@@ -332,7 +332,7 @@ static void update_hide_config() {
     db_err(err);
 }
 
-static int new_daemon_thread(void(*entry)()) {
+int new_daemon_thread(void(*entry)()) {
     thread_entry proxy = [](void *entry) -> void * {
         reinterpret_cast<void(*)()>(entry)();
         return nullptr;

@@ -62,3 +62,5 @@ enum {
     HIDE_NO_NS,
     HIDE_INVALID_PKG,
 };
+
+int new_daemon_thread(void(*entry)());
